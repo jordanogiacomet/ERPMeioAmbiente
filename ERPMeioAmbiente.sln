@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERPMeioAmbiente.API", "ERPMeioAmbiente.API\ERPMeioAmbiente.API.csproj", "{87D1AC6A-51B9-44DB-9B72-61B1410B79A8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0} = {A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERPMeioAmbiente.Shared", "ERPMeioAmbiente.Shared\ERPMeioAmbiente.Shared.csproj", "{A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87D1AC6A-51B9-44DB-9B72-61B1410B79A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87D1AC6A-51B9-44DB-9B72-61B1410B79A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87D1AC6A-51B9-44DB-9B72-61B1410B79A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87D1AC6A-51B9-44DB-9B72-61B1410B79A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A32AA2DF-8B3C-4935-8B50-FB7C915B7CB0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A25D4089-3964-4675-A870-DEA5E8B0D241}
+	EndGlobalSection
+EndGlobal
