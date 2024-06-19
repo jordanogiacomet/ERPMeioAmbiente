@@ -18,6 +18,23 @@ namespace ERPMeioAmbiente.Shared
         public string ConfirmPassword { get; set; }
 
         [Required]
-        public string Role { get; set; } // Novo campo para indicar o papel do usuário
+        [StringLength(100)]
+        public string Nome { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string Contato { get; set; }
+
+        [Required]
+        [StringLength(14, MinimumLength = 14)]
+        public string CNPJ { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Endereco { get; set; }
+
+        [Required]
+        [StringLength(9, MinimumLength = 8)]
+        public string CEP { get; set; }
     }
 }

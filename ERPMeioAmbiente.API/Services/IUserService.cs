@@ -1,4 +1,6 @@
 ﻿using ERPMeioAmbiente.Shared;
+using ERPMeioAmbienteAPI.Data;
+using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -17,13 +19,13 @@ namespace ERPMeioAmbienteAPI.Services
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConfiguration _configuration;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ERPMeioAmbienteContext _context;
 
-        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
+        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context)
         {
             _userManager = userManager;
             _configuration = configuration;
-            _roleManager = roleManager;
+            _context = context;
         }
 
         public async Task<UserManegerResponse> RegisterUserAsync(RegisterViewModel model)
@@ -52,20 +54,19 @@ namespace ERPMeioAmbienteAPI.Services
 
             if (result.Succeeded)
             {
-                // Atribuir papel ao usuário
-                var roleExists = await _roleManager.RoleExistsAsync(model.Role);
-                if (roleExists)
+
+                var cliente = new Cliente
                 {
-                    await _userManager.AddToRoleAsync(identityUser, model.Role);
-                }
-                else
-                {
-                    return new UserManegerResponse
-                    {
-                        Message = "Role does not exist",
-                        IsSuccess = false,
-                    };
-                }
+                    Nome = model.Nome,
+                    Contato = model.Contato,
+                    CNPJ = model.CNPJ,
+                    Endereco = model.Endereco,
+                    CEP = model.CEP,
+                    UserId = identityUser.Id,
+                };
+
+                _context.Clientes.Add(cliente);
+                await _context.SaveChangesAsync();
 
                 return new UserManegerResponse
                 {
