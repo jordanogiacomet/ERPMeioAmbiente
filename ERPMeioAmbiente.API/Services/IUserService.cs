@@ -54,7 +54,7 @@ namespace ERPMeioAmbienteAPI.Services
 
             if (result.Succeeded)
             {
-
+                await _userManager.AddToRoleAsync(identityUser, "Cliente");
                 var cliente = new Cliente
                 {
                     Nome = model.Nome,

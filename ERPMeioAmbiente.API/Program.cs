@@ -2,46 +2,46 @@ using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.Text;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("MeioAmbienteConnection");
 var key = builder.Configuration["AuthSettings:Key"];
 
-// Add services to the container.
+// Configuração do banco de dados
 builder.Services.AddDbContext<ERPMeioAmbienteContext>(opts =>
     opts.UseLazyLoadingProxies().UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
+// Configuração do Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequiredLength = 5;
 }).AddEntityFrameworkStores<ERPMeioAmbienteContext>()
-    .AddDefaultTokenProviders();
+  .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(auth =>
-{
-    auth.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    auth.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+// Configuração da autenticação JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        RequireExpirationTime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-        ValidateIssuerSigningKey = true,
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            RequireExpirationTime = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            ValidateIssuerSigningKey = true,
+        };
+    });
 
+// Configuração da autorização
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
@@ -49,15 +49,28 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireFuncionarioRole", policy => policy.RequireRole("Funcionario"));
 });
 
+// Serviço do UserService
 builder.Services.AddScoped<IUserService, UserService>();
+
+// Configuração dos Controllers
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Configuração do Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Inicialização das roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    // Criar as roles se elas não existirem
+    await EnsureRolesAsync(roleManager);
+}
+
+// Configuração do pipeline de requisição HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -66,7 +79,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); // Corrigido: UseAuthentication() antes de UseAuthorization()
+app.UseRouting();
+
+app.UseAuthentication(); // Antes do UseAuthorization()
 
 app.UseAuthorization();
 
@@ -74,3 +89,17 @@ app.MapControllers();
 
 app.Run();
 
+// Função para garantir a existência das roles
+async Task EnsureRolesAsync(RoleManager<IdentityRole> roleManager)
+{
+    string[] roleNames = { "Admin", "Cliente", "Funcionario" };
+
+    foreach (var roleName in roleNames)
+    {
+        var roleExists = await roleManager.RoleExistsAsync(roleName);
+        if (!roleExists)
+        {
+            await roleManager.CreateAsync(new IdentityRole(roleName));
+        }
+    }
+}
