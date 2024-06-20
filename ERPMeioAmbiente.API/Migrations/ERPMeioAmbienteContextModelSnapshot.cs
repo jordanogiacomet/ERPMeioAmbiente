@@ -25,6 +25,44 @@ namespace ERPMeioAmbiente.API.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("ERPMeioAmbiente.API.Models.Coleta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Dimensoes")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Endereco")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Nvol")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Peso")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TipoResiduo")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.ToTable("Coletas");
+                });
+
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
                 {
                     b.Property<int>("Id")
@@ -308,6 +346,17 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("ERPMeioAmbiente.API.Models.Coleta", b =>
+                {
+                    b.HasOne("ERPMeioAmbienteAPI.Models.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
                 });
 
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>

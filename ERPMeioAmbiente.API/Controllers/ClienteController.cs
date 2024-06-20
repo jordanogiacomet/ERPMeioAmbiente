@@ -23,9 +23,13 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "AdminPolicy")]
+        [Authorize]
         public IActionResult AdicionaCliente([FromBody] CreateClienteDto clienteDto)
         {
+            if (User.IsInRole("Cliente"))
+            {
+                return Unauthorized();
+            }
             Cliente cliente = _mapper.Map<Cliente>(clienteDto);
             _context.Clientes.Add(cliente);
             _context.SaveChanges();
@@ -33,10 +37,16 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "FuncionarioPolicy")]
-        public IEnumerable<ReadClienteDto> RecuperaClientes([FromQuery] int skip = 0, [FromQuery] int take = 50)
+        [Authorize]
+        public IActionResult RecuperaClientes([FromQuery] int skip = 0, [FromQuery] int take = 50)
         {
-            return _mapper.Map<List<ReadClienteDto>>(_context.Clientes.Skip(skip).Take(take));
+            if (User.IsInRole("Cliente"))
+            {
+                return Unauthorized();
+            }
+
+            var clientes = _mapper.Map<List<ReadClienteDto>>(_context.Clientes.Skip(skip).Take(take).ToList());
+            return Ok(clientes);
         }
 
         [HttpGet("me")]
@@ -46,7 +56,7 @@ namespace ERPMeioAmbienteAPI.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
             {
-                throw new Exception();
+                return Unauthorized();
             }
 
             var cliente = _context.Clientes.FirstOrDefault(c => c.UserId == userId);
@@ -77,13 +87,17 @@ namespace ERPMeioAmbienteAPI.Controllers
 
             _mapper.Map(clienteDto, cliente);
             _context.SaveChanges();
-            return NoContent();
+            return Ok(_mapper.Map<ReadClienteDto>(cliente));
         }
 
         [HttpGet("{id}")]
-        [Authorize(Policy = "AdminPolicy, FuncionarioPolicy")]
+        [Authorize]
         public IActionResult RecuperaClientePorId(int id)
         {
+            if (User.IsInRole("Cliente"))
+            {
+                return Unauthorized();
+            }
             var cliente = _context.Clientes.FirstOrDefault(cliente => cliente.Id == id);
             if (cliente == null)
             {
@@ -95,9 +109,13 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "AdminPolicy, FuncionarioPolicy")]
+        [Authorize]
         public IActionResult AtualizaCliente(int id, [FromBody] UpdateClienteDto clienteDto)
         {
+            if (User.IsInRole("Cliente"))
+            {
+                return Unauthorized();
+            }
             var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
             if (cliente == null) return NotFound();
 
@@ -107,9 +125,13 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "AdminPolicy")]
+        [Authorize]
         public IActionResult DeletaCliente(int id)
         {
+            if (User.IsInRole("Cliente"))
+            {
+                return Unauthorized();
+            }
             var cliente = _context.Clientes.FirstOrDefault(cliente => cliente.Id == id);
             if (cliente == null) return NotFound();
             _context.Remove(cliente);

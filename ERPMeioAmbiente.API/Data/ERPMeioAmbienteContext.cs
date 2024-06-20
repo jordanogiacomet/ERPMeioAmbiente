@@ -1,4 +1,5 @@
-﻿using ERPMeioAmbienteAPI.Models;
+﻿using ERPMeioAmbiente.API.Models;
+using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,5 +15,6 @@ namespace ERPMeioAmbienteAPI.Data
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Funcionario> Funcionarios { get; set; }
+        public DbSet<Coleta> Coletas { get; set; }
     }
 }

@@ -107,11 +107,17 @@ namespace ERPMeioAmbienteAPI.Services
                 };
             }
 
-            var claims = new[]
+            var roles = await _userManager.GetRolesAsync(user);
+            var claims = new List<Claim>
+            {   
+                new Claim(ClaimTypes.Email, model.Email),
+                new Claim(ClaimTypes.NameIdentifier, user.Id)
+            };
+
+            foreach (var role in roles)
             {
-        new Claim(ClaimTypes.Email, model.Email),
-        new Claim(ClaimTypes.NameIdentifier, user.Id),
-    };
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["AuthSettings:Key"]));
 
@@ -123,6 +129,7 @@ namespace ERPMeioAmbienteAPI.Services
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
             var tokenHandler = new JwtSecurityTokenHandler();
+
             string tokenAsString = tokenHandler.WriteToken(token);
 
             return new UserManegerResponse

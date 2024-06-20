@@ -95,13 +95,13 @@ using (var scope = app.Services.CreateScope())
                 Nome = "Administrador",
                 Email = adminEmail,
                 Telefone = "000000000",
-
             };
             context.Funcionarios.Add(funcionario);
             await context.SaveChangesAsync();
         }
     }
 }
+
 
 if (app.Environment.IsDevelopment())
 {

@@ -7,5 +7,6 @@
         public string CNPJ { get; set; }
         public string Endereco { get; set; }
         public string CEP { get; set; }
+        public string UserId { get; set; } 
     }
 }
