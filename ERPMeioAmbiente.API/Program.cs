@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +61,7 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var context = scope.ServiceProvider.GetRequiredService<ERPMeioAmbienteContext>();
@@ -70,7 +72,15 @@ using (var scope = app.Services.CreateScope())
     {
         if (!await roleManager.RoleExistsAsync(role))
         {
-            await roleManager.CreateAsync(new IdentityRole(role));
+            var roleResult = await roleManager.CreateAsync(new IdentityRole(role));
+            if (roleResult.Succeeded)
+            {
+                logger.LogInformation($"Role '{role}' criada com sucesso.");
+            }
+            else
+            {
+                logger.LogError($"Erro ao criar role '{role}': {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+            }
         }
     }
 
@@ -87,7 +97,16 @@ using (var scope = app.Services.CreateScope())
         var result = await userManager.CreateAsync(adminUser, "Admin@123");
         if (result.Succeeded)
         {
-            await userManager.AddToRoleAsync(adminUser, "Admin");
+            logger.LogInformation($"Usuário admin criado com sucesso: {adminEmail}");
+            var rolesResult = await userManager.AddToRolesAsync(adminUser, new[] { "Admin", "Funcionario" });
+            if (rolesResult.Succeeded)
+            {
+                logger.LogInformation($"Roles 'Admin' e 'Funcionario' atribuídas ao usuário {adminEmail} com sucesso.");
+            }
+            else
+            {
+                logger.LogError($"Erro ao atribuir roles ao usuário {adminEmail}: {string.Join(", ", rolesResult.Errors.Select(e => e.Description))}");
+            }
 
             // Criar registro de funcionário
             var funcionario = new Funcionario
@@ -95,13 +114,23 @@ using (var scope = app.Services.CreateScope())
                 Nome = "Administrador",
                 Email = adminEmail,
                 Telefone = "000000000",
+                UserId = adminUser.Id,
+                User = adminUser // Associar o usuário ao funcionário
             };
             context.Funcionarios.Add(funcionario);
             await context.SaveChangesAsync();
+            logger.LogInformation($"Registro de funcionário criado com sucesso para o usuário {adminEmail}.");
+        }
+        else
+        {
+            logger.LogError($"Erro ao criar usuário admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
     }
+    else
+    {
+        logger.LogInformation($"Usuário admin já existe: {adminEmail}");
+    }
 }
-
 
 if (app.Environment.IsDevelopment())
 {

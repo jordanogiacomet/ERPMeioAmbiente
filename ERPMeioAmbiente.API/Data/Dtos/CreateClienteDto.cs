@@ -14,5 +14,7 @@ namespace ERPMeioAmbienteAPI.Data.Dtos
         public string Endereco { get; set; }
         [Required(ErrorMessage = "O CEP do cliente é obrigatório")]
         public string CEP { get; set; }
+        [Required]
+        public string UserId { get; set; }
     }
 }

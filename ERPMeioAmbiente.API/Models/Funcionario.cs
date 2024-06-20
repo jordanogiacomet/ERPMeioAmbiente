@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace ERPMeioAmbienteAPI.Models
 {
@@ -13,5 +14,7 @@ namespace ERPMeioAmbienteAPI.Models
         public string Email { get; set; }
         [Required(ErrorMessage = "O telefone de usuário é obrigátorio")]
         public string Telefone { get; set; }
+        public string UserId { get; set; }
+        public virtual IdentityUser User { get; set; }
     }
 }

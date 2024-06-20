@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPMeioAmbiente.API.Migrations
 {
     [DbContext(typeof(ERPMeioAmbienteContext))]
-    [Migration("20240619234249_ColetaTableCreated")]
-    partial class ColetaTableCreated
+    [Migration("20240620170538_DatabaseInitializing")]
+    partial class DatabaseInitializing
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -125,7 +125,13 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Funcionarios");
                 });
@@ -363,6 +369,17 @@ namespace ERPMeioAmbiente.API.Migrations
                 });
 
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Funcionario", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
                         .WithMany()
