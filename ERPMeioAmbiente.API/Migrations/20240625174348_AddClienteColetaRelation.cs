@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ERPMeioAmbiente.API.Migrations
 {
     /// <inheritdoc />
-    public partial class DatabaseInitializing : Migration
+    public partial class AddClienteColetaRelation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -279,7 +279,6 @@ namespace ERPMeioAmbiente.API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    ClienteId = table.Column<int>(type: "int", nullable: false),
                     Nvol = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Peso = table.Column<string>(type: "longtext", nullable: false)
@@ -289,7 +288,8 @@ namespace ERPMeioAmbiente.API.Migrations
                     Endereco = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     TipoResiduo = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ClienteId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

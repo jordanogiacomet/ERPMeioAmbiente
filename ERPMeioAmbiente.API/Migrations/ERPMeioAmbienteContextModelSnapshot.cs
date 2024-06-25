@@ -357,7 +357,7 @@ namespace ERPMeioAmbiente.API.Migrations
             modelBuilder.Entity("ERPMeioAmbiente.API.Models.Coleta", b =>
                 {
                     b.HasOne("ERPMeioAmbienteAPI.Models.Cliente", "Cliente")
-                        .WithMany()
+                        .WithMany("Coletas")
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -436,6 +436,11 @@ namespace ERPMeioAmbiente.API.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
+                {
+                    b.Navigation("Coletas");
                 });
 #pragma warning restore 612, 618
         }

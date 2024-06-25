@@ -16,5 +16,16 @@ namespace ERPMeioAmbienteAPI.Data
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Funcionario> Funcionarios { get; set; }
         public DbSet<Coleta> Coletas { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Cliente>()
+                .HasMany(c => c.Coletas)
+                .WithOne(c => c.Cliente)
+                .HasForeignKey(c => c.ClienteId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 }

@@ -1,7 +1,8 @@
 ﻿using ERPMeioAmbiente.Shared;
 using ERPMeioAmbienteAPI.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Threading.Tasks;
 
 namespace ERPMeioAmbienteAPI.Controllers
 {
@@ -9,9 +10,7 @@ namespace ERPMeioAmbienteAPI.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-
-        private IUserService _userService;
-
+        private readonly IUserService _userService;
 
         public AuthController(IUserService userService)
         {
@@ -19,14 +18,16 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> RegisterAsync([FromBody]RegisterViewModel model)
-        
+        [SwaggerOperation(Summary = "Registra um novo usuário", Description = "Registra um novo usuário no sistema")]
+        [SwaggerResponse(200, "Usuário registrado com sucesso")]
+        [SwaggerResponse(400, "Propriedades inválidas")]
+        public async Task<IActionResult> RegisterAsync([FromBody] RegisterViewModel model)
         {
-            if(ModelState.IsValid)
+            if (ModelState.IsValid)
             {
                 var result = await _userService.RegisterUserAsync(model);
 
-                if(result.IsSuccess)
+                if (result.IsSuccess)
                 {
                     return Ok(result);
                 }
@@ -37,13 +38,16 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpPost("Login")]
+        [SwaggerOperation(Summary = "Login do usuário", Description = "Realiza o login do usuário no sistema")]
+        [SwaggerResponse(200, "Login realizado com sucesso")]
+        [SwaggerResponse(400, "Propriedades inválidas")]
         public async Task<IActionResult> LoginAsync([FromBody] LoginViewModel model)
         {
             if (ModelState.IsValid)
             {
                 var result = await _userService.LoginUserAsync(model);
 
-                if(result.IsSuccess)
+                if (result.IsSuccess)
                 {
                     return Ok(result);
                 }

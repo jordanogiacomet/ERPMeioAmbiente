@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPMeioAmbiente.API.Migrations
 {
     [DbContext(typeof(ERPMeioAmbienteContext))]
-    [Migration("20240620170538_DatabaseInitializing")]
-    partial class DatabaseInitializing
+    [Migration("20240625174348_AddClienteColetaRelation")]
+    partial class AddClienteColetaRelation
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -360,7 +360,7 @@ namespace ERPMeioAmbiente.API.Migrations
             modelBuilder.Entity("ERPMeioAmbiente.API.Models.Coleta", b =>
                 {
                     b.HasOne("ERPMeioAmbienteAPI.Models.Cliente", "Cliente")
-                        .WithMany()
+                        .WithMany("Coletas")
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -439,6 +439,11 @@ namespace ERPMeioAmbiente.API.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
+                {
+                    b.Navigation("Coletas");
                 });
 #pragma warning restore 612, 618
         }
