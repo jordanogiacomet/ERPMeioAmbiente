@@ -55,5 +55,45 @@ namespace ERPMeioAmbienteAPI.Controllers
             }
             return BadRequest("Some properties are not valid");
         }
+
+        [HttpPost("ForgotPassword")]
+        [SwaggerOperation(Summary = "Recuperar senha", Description = "Envia um link de recuperação de senha para o email do usuário")]
+        [SwaggerResponse(200, "Link de recuperação enviado com sucesso")]
+        [SwaggerResponse(400, "Propriedades inválidas")]
+        public async Task<IActionResult> ForgotPasswordAsync([FromBody] ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _userService.ForgotPasswordAsync(model);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(result);
+                }
+                return BadRequest(result);
+            }
+
+            return BadRequest("Properties not valid");
+        }
+
+        [HttpPost("ResetPassword")]
+        [SwaggerOperation(Summary = "Redefinir senha", Description = "Redefine a senha do usuário utilizando o token de recuperação")]
+        [SwaggerResponse(200, "Senha redefinida com sucesso")]
+        [SwaggerResponse(400, "Propriedades inválidas")]
+        public async Task<IActionResult> ResetPasswordAsync([FromBody] ResetPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _userService.ResetPasswordAsync(model);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(result);
+                }
+                return BadRequest(result);
+            }
+
+            return BadRequest("Properties not valid");
+        }
     }
 }

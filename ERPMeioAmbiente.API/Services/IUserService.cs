@@ -13,7 +13,10 @@ namespace ERPMeioAmbienteAPI.Services
     {
         Task<UserManegerResponse> RegisterUserAsync(RegisterViewModel model);
         Task<UserManegerResponse> LoginUserAsync(LoginViewModel model);
+        Task<UserManegerResponse> ForgotPasswordAsync(ForgotPasswordViewModel model);
+        Task<UserManegerResponse> ResetPasswordAsync(ResetPasswordViewModel model);
     }
+
 
     public class UserService : IUserService
     {
@@ -109,7 +112,7 @@ namespace ERPMeioAmbienteAPI.Services
 
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
-            {   
+            {
                 new Claim(ClaimTypes.Email, model.Email),
                 new Claim(ClaimTypes.NameIdentifier, user.Id)
             };
@@ -137,6 +140,69 @@ namespace ERPMeioAmbienteAPI.Services
                 Message = tokenAsString,
                 IsSuccess = true,
                 ExpireDate = token.ValidTo
+            };
+        }
+
+        public async Task<UserManegerResponse> ForgotPasswordAsync(ForgotPasswordViewModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return new UserManegerResponse
+                {
+                    Message = "No user associated with email",
+                    IsSuccess = false,
+                };
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var resetLink = $"https://yourapp.com/resetpassword?email={model.Email}&token={token}";
+
+            // You would typically send the link via email
+            // For simplicity, we are returning the link in the response
+            return new UserManegerResponse
+            {
+                Message = resetLink,
+                IsSuccess = true,
+            };
+        }
+
+        public async Task<UserManegerResponse> ResetPasswordAsync(ResetPasswordViewModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return new UserManegerResponse
+                {
+                    Message = "No user associated with email",
+                    IsSuccess = false,
+                };
+            }
+
+            if (model.NewPassword != model.ConfirmPassword)
+            {
+                return new UserManegerResponse
+                {
+                    Message = "Password and Confirm Password do not match",
+                    IsSuccess = false,
+                };
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
+            if (result.Succeeded)
+            {
+                return new UserManegerResponse
+                {
+                    Message = "Password has been reset successfully",
+                    IsSuccess = true,
+                };
+            }
+
+            return new UserManegerResponse
+            {
+                Message = "Error while resetting the password",
+                IsSuccess = false,
+                Errors = result.Errors.Select(e => e.Description),
             };
         }
     }
