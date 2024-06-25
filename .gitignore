@@ -36,3 +36,4 @@ appsettings.json
 
 # Ignore os logs
 *.log
+/ERPMeioAmbiente.API/appsettings.json
