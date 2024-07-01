@@ -4,6 +4,7 @@ using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
@@ -19,11 +20,13 @@ namespace ERPMeioAmbiente.API.Controllers
     {
         private readonly ERPMeioAmbienteContext _context;
         private readonly IMapper _mapper;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public FuncionarioController(ERPMeioAmbienteContext context, IMapper mapper)
+        public FuncionarioController(ERPMeioAmbienteContext context, IMapper mapper, UserManager<IdentityUser> userManager)
         {
             _context = context;
             _mapper = mapper;
+            _userManager = userManager;
         }
 
         [HttpPost]
@@ -31,19 +34,41 @@ namespace ERPMeioAmbiente.API.Controllers
         [SwaggerOperation(Summary = "Adiciona um novo funcionário", Description = "Adiciona um novo funcionário ao sistema")]
         [SwaggerResponse(201, "Funcionário criado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
-        public IActionResult AdicionaFuncionario([FromBody] CreateFuncionarioDto funcionarioDto)
+        public async Task<IActionResult> AdicionaFuncionario([FromBody] CreateFuncionarioDto funcionarioDto)
         {
-            if (User.IsInRole("Funcionario") || User.IsInRole("Cliente"))
+            if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
+
+            // Criar usuário Identity
+            var identityUser = new IdentityUser
+            {
+                Email = funcionarioDto.Email,
+                UserName = funcionarioDto.Email
+            };
+
+            var result = await _userManager.CreateAsync(identityUser, funcionarioDto.Password);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Erro ao criar usuário", errors = result.Errors.Select(e => e.Description) });
+            }
+
+            await _userManager.AddToRoleAsync(identityUser, "Funcionario");
+
+            // Criar funcionário
             Funcionario funcionario = _mapper.Map<Funcionario>(funcionarioDto);
+            funcionario.UserId = identityUser.Id;
+
             _context.Funcionarios.Add(funcionario);
             _context.SaveChanges();
+
             return CreatedAtAction(nameof(RecuperaFuncionarioPorId), new { id = funcionario.Id }, funcionario);
         }
 
         [HttpGet]
+        [Authorize]
         [SwaggerOperation(Summary = "Recupera todos os funcionários", Description = "Recupera uma lista de todos os funcionários do sistema")]
         [SwaggerResponse(200, "Lista de funcionários recuperada com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
@@ -96,13 +121,14 @@ namespace ERPMeioAmbiente.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         [SwaggerOperation(Summary = "Deleta funcionário por ID", Description = "Deleta um funcionário específico pelo ID")]
         [SwaggerResponse(204, "Funcionário deletado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Funcionário não encontrado")]
         public IActionResult DeletaFuncionario(int id)
         {
-            if (User.IsInRole("Cliente") || User.IsInRole("Funcionario"))
+            if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }

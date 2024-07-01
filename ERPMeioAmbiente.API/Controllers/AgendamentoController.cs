@@ -6,6 +6,7 @@ using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace ERPMeioAmbiente.API.Controllers
 {
@@ -80,13 +81,30 @@ namespace ERPMeioAmbiente.API.Controllers
             {
                 return Unauthorized();
             }
-            var agendamento = _context.Agendamentos.FirstOrDefault(agendamento => agendamento.Id == id);
-            if (agendamento == null) return NotFound();
+
+            var agendamento = _context.Agendamentos.FirstOrDefault(a => a.Id == id);
+            if (agendamento == null)
+                return NotFound("Agendamento não encontrado");
+
+            var coleta = _context.Coletas.FirstOrDefault(c => c.Id == agendamentoDto.ColetaId);
+            if (coleta == null)
+                return BadRequest("Coleta associada não encontrada");
 
             _mapper.Map(agendamentoDto, agendamento);
-            _context.SaveChanges();
-            return NoContent();
+
+            agendamento.Coleta = coleta; // Associar a coleta corretamente
+
+            try
+            {
+                _context.SaveChanges();
+                return NoContent();
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, $"Erro ao atualizar o agendamento: {ex.InnerException?.Message ?? ex.Message}");
+            }
         }
+
 
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Deleta agendamento por ID", Description = "Deleta um agendamento específico pelo ID")]

@@ -360,10 +360,21 @@ namespace ERPMeioAmbienteAPI.Controllers
             }
 
             _mapper.Map(coletaDto, coleta);
+
+            // Limpar os resíduos existentes
             coleta.ColetaResiduos.Clear();
+
+            // Associar os resíduos fornecidos na atualização
             foreach (var residuoId in coletaDto.ResiduoIds)
             {
-                coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId });
+                var residuo = _context.Residuos.Find(residuoId);
+                if (residuo == null)
+                {
+                    return NotFound($"Residuo com ID {residuoId} não encontrado.");
+                }
+
+                _context.Attach(residuo); // Garantir que o Residuo está sendo rastreado
+                coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId, Residuo = residuo });
             }
 
             _context.SaveChanges();

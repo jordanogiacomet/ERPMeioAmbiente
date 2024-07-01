@@ -31,7 +31,7 @@ namespace ERPMeioAmbienteAPI.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ColetaResiduo>()
-                .HasKey(cr => new { cr.ColetaId, cr.ResiduoId });
+             .HasKey(cr => new { cr.ColetaId, cr.ResiduoId });
 
             modelBuilder.Entity<ColetaResiduo>()
                 .HasOne(cr => cr.Coleta)

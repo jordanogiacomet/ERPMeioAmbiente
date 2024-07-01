@@ -14,7 +14,8 @@ namespace ERPMeioAmbienteAPI.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]
-    [Authorize] // Proteger todas as rotas
+    [Authorize
+        ] // Proteger todas as rotas
     public class ColetaController : ControllerBase
     {
         private readonly ERPMeioAmbienteContext _context;
@@ -54,6 +55,7 @@ namespace ERPMeioAmbienteAPI.Controllers
                 return Unauthorized();
             }
             var coletas = _mapper.Map<List<ReadColetaDto>>(_context.Coletas
+                .Include(c => c.Cliente) // Inclui a entidade Cliente
                 .Include(c => c.ColetaResiduos)
                 .ThenInclude(cr => cr.Residuo)
                 .Skip(skip)
@@ -61,6 +63,7 @@ namespace ERPMeioAmbienteAPI.Controllers
                 .ToList());
             return Ok(coletas);
         }
+
 
         [HttpGet("{id}")]
         [SwaggerOperation(Summary = "Recupera coleta por ID", Description = "Recupera uma coleta específica pelo ID")]
@@ -92,6 +95,7 @@ namespace ERPMeioAmbienteAPI.Controllers
             {
                 return Unauthorized();
             }
+
             var coleta = _context.Coletas
                 .Include(c => c.ColetaResiduos)
                 .FirstOrDefault(coleta => coleta.Id == id);
@@ -104,20 +108,30 @@ namespace ERPMeioAmbienteAPI.Controllers
             var newResiduoIds = coletaDto.ResiduoIds.Except(existingResiduoIds).ToList();
             var removedResiduoIds = existingResiduoIds.Except(coletaDto.ResiduoIds).ToList();
 
+            // Adicionar novos resíduos
             foreach (var residuoId in newResiduoIds)
             {
-                coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId, ColetaId = coleta.Id });
+                var residuo = _context.Residuos.Find(residuoId);
+                if (residuo != null)
+                {
+                    coleta.ColetaResiduos.Add(new ColetaResiduo { ColetaId = coleta.Id, ResiduoId = residuoId });
+                }
             }
 
+            // Remover resíduos antigos
             foreach (var residuoId in removedResiduoIds)
             {
                 var residuoToRemove = coleta.ColetaResiduos.FirstOrDefault(cr => cr.ResiduoId == residuoId);
-                _context.ColetaResiduos.Remove(residuoToRemove);
+                if (residuoToRemove != null)
+                {
+                    _context.ColetaResiduos.Remove(residuoToRemove);
+                }
             }
 
             _context.SaveChanges();
             return NoContent();
         }
+
 
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Deleta coleta por ID", Description = "Deleta uma coleta específica pelo ID")]

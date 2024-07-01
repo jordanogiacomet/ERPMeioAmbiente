@@ -7,8 +7,11 @@ namespace ERPMeioAmbiente.API.Data.Dtos
         [Required(ErrorMessage = "O nome de funcionário é obrigatório")]
         public string Nome { get; set; }
         [Required(ErrorMessage = "O email de funcionário é obrigatório")]
+        [EmailAddress]
         public string Email { get; set; }
         [Required(ErrorMessage = "O telefone de usuário é obrigátorio")]
         public string Telefone { get; set; }
+        [Required]
+        public string Password { get; set; }
     }
 }

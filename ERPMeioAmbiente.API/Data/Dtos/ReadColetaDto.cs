@@ -1,14 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using ERPMeioAmbienteAPI.Data.Dtos;
 
-namespace ERPMeioAmbienteAPI.Data.Dtos
+public class ReadColetaDto
 {
-    public class ReadColetaDto
-    {
-        public int Id { get; set; }
-        public string Nvol { get; set; }
-        public string Peso { get; set; }
-        public string Dimensoes { get; set; }
-        public string Endereco { get; set; }
-        public List<ReadResiduoDto> Residuos { get; set; } // Lista de resíduos
-    }
+    public int Id { get; set; }
+    public string Nvol { get; set; }
+    public string Peso { get; set; }
+    public string Dimensoes { get; set; }
+    public string Endereco { get; set; }
+    public List<ReadResiduoDto> Residuos { get; set; } // Lista de resíduos
+    public ReadClienteDto Cliente { get; set; } // Informações do cliente
 }
