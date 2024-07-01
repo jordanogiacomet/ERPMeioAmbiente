@@ -18,11 +18,11 @@ namespace ERPMeioAmbiente.API.Models
         [Required]
         public string Endereco { get; set; }
         [Required]
-        public string TipoResiduo { get; set; }
-
-        [Required]
         public int ClienteId { get; set; } // Adjusted to int
         [ForeignKey("ClienteId")]
         public virtual Cliente Cliente { get; set; }
+        public virtual ICollection<ColetaResiduo> ColetaResiduos { get; set; } = new List<ColetaResiduo>();
+
+        public virtual Agendamento Agendamento { get; set; }
     }
 }

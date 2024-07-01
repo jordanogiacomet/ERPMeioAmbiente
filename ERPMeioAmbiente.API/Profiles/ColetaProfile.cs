@@ -2,15 +2,24 @@
 using ERPMeioAmbiente.API.Models;
 using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
+using System.Linq;
 
 public class ColetaProfile : Profile
 {
     public ColetaProfile()
     {
-        CreateMap<CreateColetaForClienteDto, Coleta>();
-        CreateMap<CreateColetaDto, Coleta>();
+        CreateMap<CreateColetaDto, Coleta>()
+            .ForMember(dest => dest.ColetaResiduos, opt => opt.MapFrom(src => src.ResiduoIds.Select(id => new ColetaResiduo { ResiduoId = id })));
+
+        CreateMap<CreateColetaForClienteDto, Coleta>()
+            .ForMember(dest => dest.ColetaResiduos, opt => opt.MapFrom(src => src.ResiduoIds.Select(id => new ColetaResiduo { ResiduoId = id })));
+
+        CreateMap<UpdateColetaDto, Coleta>()
+            .ForMember(dest => dest.ColetaResiduos, opt => opt.MapFrom(src => src.ResiduoIds.Select(id => new ColetaResiduo { ResiduoId = id })));
+
         CreateMap<Coleta, ReadColetaDto>()
-            .ForMember(dest => dest.ClienteNome, opt => opt.MapFrom(src => src.Cliente.Nome));
-        CreateMap<UpdateColetaDto, Coleta>();
+            .ForMember(dest => dest.Residuos, opt => opt.MapFrom(src => src.ColetaResiduos.Select(cr => cr.Residuo)));
+
+        CreateMap<Residuo, ReadResiduoDto>();
     }
 }

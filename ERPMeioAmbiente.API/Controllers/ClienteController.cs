@@ -4,8 +4,12 @@ using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 
 namespace ERPMeioAmbienteAPI.Controllers
@@ -17,11 +21,13 @@ namespace ERPMeioAmbienteAPI.Controllers
     {
         private readonly ERPMeioAmbienteContext _context;
         private readonly IMapper _mapper;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ClienteController(ERPMeioAmbienteContext context, IMapper mapper)
+        public ClienteController(ERPMeioAmbienteContext context, IMapper mapper, UserManager<IdentityUser> userManager)
         {
             _context = context;
             _mapper = mapper;
+            _userManager = userManager;
         }
 
         [HttpPost]
@@ -29,13 +35,37 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerOperation(Summary = "Adiciona um novo cliente", Description = "Adiciona um novo cliente ao sistema")]
         [SwaggerResponse(201, "Cliente criado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
-        public IActionResult AdicionaCliente([FromBody] CreateClienteDto clienteDto)
+        public async Task<IActionResult> AdicionaCliente([FromBody] CreateClienteDto clienteDto)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
+
             Cliente cliente = _mapper.Map<Cliente>(clienteDto);
+
+            // Se o email e senha foram fornecidos, criar um usuário para o cliente
+            if (!string.IsNullOrEmpty(clienteDto.Email) && !string.IsNullOrEmpty(clienteDto.Password))
+            {
+                var identityUser = new IdentityUser
+                {
+                    Email = clienteDto.Email,
+                    UserName = clienteDto.Email,
+                };
+
+                var result = await _userManager.CreateAsync(identityUser, clienteDto.Password);
+
+                if (result.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(identityUser, "Cliente");
+                    cliente.UserId = identityUser.Id;
+                }
+                else
+                {
+                    return BadRequest(new { message = "Erro ao criar usuário", errors = result.Errors });
+                }
+            }
+
             _context.Clientes.Add(cliente);
             _context.SaveChanges();
             return CreatedAtAction(nameof(RecuperaClientePorId), new { id = cliente.Id }, cliente);
@@ -154,17 +184,51 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(204, "Cliente deletado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Cliente não encontrado")]
-        public IActionResult DeletaCliente(int id)
+        public async Task<IActionResult> DeletaCliente(int id)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var cliente = _context.Clientes.FirstOrDefault(cliente => cliente.Id == id);
-            if (cliente == null) return NotFound();
-            _context.Remove(cliente);
-            _context.SaveChanges();
-            return NoContent();
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    var cliente = await _context.Clientes.Include(c => c.User).FirstOrDefaultAsync(c => c.Id == id);
+                    if (cliente == null)
+                    {
+                        return NotFound();
+                    }
+
+                    var user = await _userManager.FindByIdAsync(cliente.UserId);
+                    if (user == null)
+                    {
+                        return NotFound();
+                    }
+
+                    _context.Clientes.Remove(cliente);
+                    var userResult = await _userManager.DeleteAsync(user);
+                    if (!userResult.Succeeded)
+                    {
+                        throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return NoContent();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    await transaction.RollbackAsync();
+                    return Conflict("Concurrency conflict occurred while trying to delete the client. Please try again.");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, $"Internal server error: {ex.Message}");
+                }
+            }
         }
 
         [HttpPost("me/solicita-coleta")]
@@ -189,6 +253,12 @@ namespace ERPMeioAmbienteAPI.Controllers
             var coleta = _mapper.Map<Coleta>(coletaDto);
             coleta.ClienteId = cliente.Id;
             coleta.Cliente = cliente;
+            coleta.ColetaResiduos = new List<ColetaResiduo>();
+
+            foreach (var residuoId in coletaDto.ResiduoIds)
+            {
+                coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId });
+            }
 
             _context.Coletas.Add(coleta);
             _context.SaveChanges();
@@ -197,6 +267,7 @@ namespace ERPMeioAmbienteAPI.Controllers
 
             return CreatedAtAction("RecuperaColetaPorId", "Coleta", new { id = coleta.Id }, readColetaDto);
         }
+
 
         [HttpGet("me/coletas")]
         [Authorize(Policy = "ClientePolicy")]
@@ -218,7 +289,11 @@ namespace ERPMeioAmbienteAPI.Controllers
                 return NotFound();
             }
 
-            var coletas = _context.Coletas.Where(c => c.ClienteId == cliente.Id).ToList();
+            var coletas = _context.Coletas
+                .Include(c => c.ColetaResiduos)
+                .ThenInclude(cr => cr.Residuo)
+                .Where(c => c.ClienteId == cliente.Id)
+                .ToList();
             var coletasDto = _mapper.Map<List<ReadColetaDto>>(coletas);
             return Ok(coletasDto);
         }
@@ -243,7 +318,10 @@ namespace ERPMeioAmbienteAPI.Controllers
                 return NotFound();
             }
 
-            var coleta = _context.Coletas.FirstOrDefault(c => c.Id == id && c.ClienteId == cliente.Id);
+            var coleta = _context.Coletas
+                .Include(c => c.ColetaResiduos)
+                .ThenInclude(cr => cr.Residuo)
+                .FirstOrDefault(c => c.Id == id && c.ClienteId == cliente.Id);
             if (coleta == null)
             {
                 return NotFound();
@@ -273,13 +351,21 @@ namespace ERPMeioAmbienteAPI.Controllers
                 return NotFound();
             }
 
-            var coleta = _context.Coletas.FirstOrDefault(c => c.Id == id && c.ClienteId == cliente.Id);
+            var coleta = _context.Coletas
+                .Include(c => c.ColetaResiduos)
+                .FirstOrDefault(c => c.Id == id && c.ClienteId == cliente.Id);
             if (coleta == null)
             {
                 return NotFound();
             }
 
             _mapper.Map(coletaDto, coleta);
+            coleta.ColetaResiduos.Clear();
+            foreach (var residuoId in coletaDto.ResiduoIds)
+            {
+                coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId });
+            }
+
             _context.SaveChanges();
             return Ok(_mapper.Map<ReadColetaDto>(coleta));
         }
@@ -316,3 +402,4 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
     }
 }
+

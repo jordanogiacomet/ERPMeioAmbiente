@@ -9,6 +9,8 @@
   <ItemGroup>
     <Compile Remove="Migrations\20240620164653_DatabaseInitialization.cs" />
     <Compile Remove="Migrations\20240620164653_DatabaseInitialization.Designer.cs" />
+    <Compile Remove="Migrations\20240701191718_InitializingDatabase.cs" />
+    <Compile Remove="Migrations\20240701191718_InitializingDatabase.Designer.cs" />
     <Compile Remove="Migrations\ERPMeioAmbienteContextModelSnapshot.cs" />
   </ItemGroup>
 

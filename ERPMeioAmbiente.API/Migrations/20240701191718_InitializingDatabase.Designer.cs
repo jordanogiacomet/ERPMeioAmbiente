@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPMeioAmbiente.API.Migrations
 {
     [DbContext(typeof(ERPMeioAmbienteContext))]
-    [Migration("20240625174348_AddClienteColetaRelation")]
-    partial class AddClienteColetaRelation
+    [Migration("20240701191718_InitializingDatabase")]
+    partial class InitializingDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -55,15 +55,45 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("TipoResiduo")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
 
                     b.ToTable("Coletas");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Agendamento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ColetaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("HorarioChegada")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Motorista")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TipoVeiculo")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Veiculo")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ColetaId")
+                        .IsUnique();
+
+                    b.ToTable("Agendamentos");
                 });
 
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
@@ -105,6 +135,24 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.ToTable("Clientes");
                 });
 
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.ColetaResiduo", b =>
+                {
+                    b.Property<int>("ColetaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResiduoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.HasKey("ColetaId", "ResiduoId");
+
+                    b.HasIndex("ResiduoId");
+
+                    b.ToTable("ColetaResiduos");
+                });
+
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Funcionario", b =>
                 {
                     b.Property<int>("Id")
@@ -136,7 +184,7 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.ToTable("Funcionarios");
                 });
 
-            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Produto", b =>
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Residuo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -158,7 +206,7 @@ namespace ERPMeioAmbiente.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Produtos");
+                    b.ToTable("Residuos");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -368,6 +416,17 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.Navigation("Cliente");
                 });
 
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Agendamento", b =>
+                {
+                    b.HasOne("ERPMeioAmbiente.API.Models.Coleta", "Coleta")
+                        .WithOne("Agendamento")
+                        .HasForeignKey("ERPMeioAmbienteAPI.Models.Agendamento", "ColetaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Coleta");
+                });
+
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
@@ -377,6 +436,25 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.ColetaResiduo", b =>
+                {
+                    b.HasOne("ERPMeioAmbiente.API.Models.Coleta", "Coleta")
+                        .WithMany("ColetaResiduos")
+                        .HasForeignKey("ColetaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ERPMeioAmbienteAPI.Models.Residuo", "Residuo")
+                        .WithMany("ColetaResiduos")
+                        .HasForeignKey("ResiduoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Coleta");
+
+                    b.Navigation("Residuo");
                 });
 
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Funcionario", b =>
@@ -441,9 +519,22 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ERPMeioAmbiente.API.Models.Coleta", b =>
+                {
+                    b.Navigation("Agendamento")
+                        .IsRequired();
+
+                    b.Navigation("ColetaResiduos");
+                });
+
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
                 {
                     b.Navigation("Coletas");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Residuo", b =>
+                {
+                    b.Navigation("ColetaResiduos");
                 });
 #pragma warning restore 612, 618
         }

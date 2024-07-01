@@ -5,6 +5,7 @@ using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace ERPMeioAmbienteAPI.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]
-    [Authorize(Policy = "FuncionarioPolicy, AdminPolicy")] // Proteger todas as rotas
+    [Authorize] // Proteger todas as rotas
     public class ColetaController : ControllerBase
     {
         private readonly ERPMeioAmbienteContext _context;
@@ -52,7 +53,12 @@ namespace ERPMeioAmbienteAPI.Controllers
             {
                 return Unauthorized();
             }
-            var coletas = _mapper.Map<List<ReadColetaDto>>(_context.Coletas.Skip(skip).Take(take).ToList());
+            var coletas = _mapper.Map<List<ReadColetaDto>>(_context.Coletas
+                .Include(c => c.ColetaResiduos)
+                .ThenInclude(cr => cr.Residuo)
+                .Skip(skip)
+                .Take(take)
+                .ToList());
             return Ok(coletas);
         }
 
@@ -63,7 +69,10 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(404, "Coleta não encontrada")]
         public IActionResult RecuperaColetaPorId(int id)
         {
-            var coleta = _context.Coletas.FirstOrDefault(coleta => coleta.Id == id);
+            var coleta = _context.Coletas
+                .Include(c => c.ColetaResiduos)
+                .ThenInclude(cr => cr.Residuo)
+                .FirstOrDefault(coleta => coleta.Id == id);
             if (coleta == null)
             {
                 return NotFound();
@@ -83,9 +92,29 @@ namespace ERPMeioAmbienteAPI.Controllers
             {
                 return Unauthorized();
             }
-            var coleta = _context.Coletas.FirstOrDefault(coleta => coleta.Id == id);
+            var coleta = _context.Coletas
+                .Include(c => c.ColetaResiduos)
+                .FirstOrDefault(coleta => coleta.Id == id);
             if (coleta == null) return NotFound();
+
             _mapper.Map(coletaDto, coleta);
+
+            // Atualizar a relação muitos-para-muitos
+            var existingResiduoIds = coleta.ColetaResiduos.Select(cr => cr.ResiduoId).ToList();
+            var newResiduoIds = coletaDto.ResiduoIds.Except(existingResiduoIds).ToList();
+            var removedResiduoIds = existingResiduoIds.Except(coletaDto.ResiduoIds).ToList();
+
+            foreach (var residuoId in newResiduoIds)
+            {
+                coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId, ColetaId = coleta.Id });
+            }
+
+            foreach (var residuoId in removedResiduoIds)
+            {
+                var residuoToRemove = coleta.ColetaResiduos.FirstOrDefault(cr => cr.ResiduoId == residuoId);
+                _context.ColetaResiduos.Remove(residuoToRemove);
+            }
+
             _context.SaveChanges();
             return NoContent();
         }

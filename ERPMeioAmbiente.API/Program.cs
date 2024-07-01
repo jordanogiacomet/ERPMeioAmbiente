@@ -20,11 +20,14 @@ builder.Services.AddDbContext<ERPMeioAmbienteContext>(opts =>
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequiredLength = 5;
+    options.SignIn.RequireConfirmedEmail = true; // Add this line
 }).AddEntityFrameworkStores<ERPMeioAmbienteContext>()
   .AddDefaultTokenProviders();
 
@@ -121,7 +124,8 @@ using (var scope = app.Services.CreateScope())
         adminUser = new IdentityUser
         {
             UserName = adminEmail,
-            Email = adminEmail
+            Email = adminEmail,
+            EmailConfirmed = true // Set the admin email as confirmed
         };
         var result = await userManager.CreateAsync(adminUser, "Admin@123");
         if (result.Succeeded)

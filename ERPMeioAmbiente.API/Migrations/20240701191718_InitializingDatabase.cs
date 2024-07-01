@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ERPMeioAmbiente.API.Migrations
 {
     /// <inheritdoc />
-    public partial class AddClienteColetaRelation : Migration
+    public partial class InitializingDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -70,7 +70,7 @@ namespace ERPMeioAmbiente.API.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Produtos",
+                name: "Residuos",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -84,7 +84,7 @@ namespace ERPMeioAmbiente.API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Produtos", x => x.Id);
+                    table.PrimaryKey("PK_Residuos", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -287,8 +287,6 @@ namespace ERPMeioAmbiente.API.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Endereco = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TipoResiduo = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ClienteId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -302,6 +300,65 @@ namespace ERPMeioAmbiente.API.Migrations
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Agendamentos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    ColetaId = table.Column<int>(type: "int", nullable: false),
+                    Motorista = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Veiculo = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TipoVeiculo = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    HorarioChegada = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Agendamentos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Agendamentos_Coletas_ColetaId",
+                        column: x => x.ColetaId,
+                        principalTable: "Coletas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ColetaResiduos",
+                columns: table => new
+                {
+                    ColetaId = table.Column<int>(type: "int", nullable: false),
+                    ResiduoId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ColetaResiduos", x => new { x.ColetaId, x.ResiduoId });
+                    table.ForeignKey(
+                        name: "FK_ColetaResiduos_Coletas_ColetaId",
+                        column: x => x.ColetaId,
+                        principalTable: "Coletas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ColetaResiduos_Residuos_ResiduoId",
+                        column: x => x.ResiduoId,
+                        principalTable: "Residuos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Agendamentos_ColetaId",
+                table: "Agendamentos",
+                column: "ColetaId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -346,6 +403,11 @@ namespace ERPMeioAmbiente.API.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ColetaResiduos_ResiduoId",
+                table: "ColetaResiduos",
+                column: "ResiduoId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Coletas_ClienteId",
                 table: "Coletas",
                 column: "ClienteId");
@@ -359,6 +421,9 @@ namespace ERPMeioAmbiente.API.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Agendamentos");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -375,16 +440,19 @@ namespace ERPMeioAmbiente.API.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Coletas");
+                name: "ColetaResiduos");
 
             migrationBuilder.DropTable(
                 name: "Funcionarios");
 
             migrationBuilder.DropTable(
-                name: "Produtos");
+                name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "Coletas");
+
+            migrationBuilder.DropTable(
+                name: "Residuos");
 
             migrationBuilder.DropTable(
                 name: "Clientes");

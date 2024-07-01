@@ -15,6 +15,11 @@ namespace ERPMeioAmbienteAPI.Data.Dtos
         [Required(ErrorMessage = "O CEP do cliente é obrigatório")]
         public string CEP { get; set; }
         [Required]
-        public string UserId { get; set; }
+        [StringLength(50)]
+        [EmailAddress]
+        public string Email { get; set; } // Opcional para criação de usuário
+        [Required]
+        [StringLength(50, MinimumLength = 5)]
+        public string Password { get; set; } // Opcional para criação de usuário
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace ERPMeioAmbienteAPI.Data.Dtos
 {
@@ -13,8 +14,7 @@ namespace ERPMeioAmbienteAPI.Data.Dtos
         [Required]
         public string Endereco { get; set; }
         [Required]
-        public string TipoResiduo { get; set; }
-        [Required]
-        public string ClienteId { get; set; } // Assuming ClienteId is a string in the DTO
+        public int ClienteId { get; set; }
+        public List<int> ResiduoIds { get; set; } // Lista de IDs de resíduos
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace ERPMeioAmbienteAPI.Data.Dtos
+﻿using System.Collections.Generic;
+
+namespace ERPMeioAmbienteAPI.Data.Dtos
 {
     public class ReadColetaDto
     {
@@ -7,8 +9,6 @@
         public string Peso { get; set; }
         public string Dimensoes { get; set; }
         public string Endereco { get; set; }
-        public string TipoResiduo { get; set; }
-        public int ClienteId { get; set; }
-        public string ClienteNome { get; set; }
+        public List<ReadResiduoDto> Residuos { get; set; } // Lista de resíduos
     }
 }

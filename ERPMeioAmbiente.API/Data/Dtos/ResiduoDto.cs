@@ -1,9 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace ERPMeioAmbienteAPI.Data.Dtos
+﻿namespace ERPMeioAmbiente.API.Data.Dtos
 {
-    public class ReadProdutoDto
+    public class ResiduoDto
     {
+        public int Id { get; set; }
         public string Nome { get; set; }
         public string Categoria { get; set; }
         public string Tipo { get; set; }

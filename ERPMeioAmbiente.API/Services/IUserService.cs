@@ -15,6 +15,7 @@ namespace ERPMeioAmbienteAPI.Services
         Task<UserManegerResponse> LoginUserAsync(LoginViewModel model);
         Task<UserManegerResponse> ForgotPasswordAsync(ForgotPasswordViewModel model);
         Task<UserManegerResponse> ResetPasswordAsync(ResetPasswordViewModel model);
+        Task<UserManegerResponse> ConfirmEmailAsync(string userId, string token);
     }
 
 
@@ -23,12 +24,14 @@ namespace ERPMeioAmbienteAPI.Services
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly ERPMeioAmbienteContext _context;
+        private readonly IEmailService _emailService;
 
-        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context)
+        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context, IEmailService emailService)
         {
             _userManager = userManager;
             _configuration = configuration;
             _context = context;
+            _emailService = emailService;
         }
 
         public async Task<UserManegerResponse> RegisterUserAsync(RegisterViewModel model)
@@ -71,9 +74,13 @@ namespace ERPMeioAmbienteAPI.Services
                 _context.Clientes.Add(cliente);
                 await _context.SaveChangesAsync();
 
+                var confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
+                var confirmationLink = $"http://localhost:7186/api/Auth/confirm-email?userId={identityUser.Id}&token={confirmationToken}";
+                await _emailService.SendEmailAsync(identityUser.Email, "Confirme seu email", $"Por favor, confirme seu email clicando no link: {confirmationLink}");
+
                 return new UserManegerResponse
                 {
-                    Message = "User created successfully",
+                    Message = "User created successfully. Please check your email to confirm your account.",
                     IsSuccess = true,
                 };
             }
@@ -85,6 +92,7 @@ namespace ERPMeioAmbienteAPI.Services
                 Errors = result.Errors.Select(e => e.Description)
             };
         }
+
 
         public async Task<UserManegerResponse> LoginUserAsync(LoginViewModel model)
         {
@@ -140,6 +148,36 @@ namespace ERPMeioAmbienteAPI.Services
                 Message = tokenAsString,
                 IsSuccess = true,
                 ExpireDate = token.ValidTo
+            };
+        }
+
+        public async Task<UserManegerResponse> ConfirmEmailAsync(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new UserManegerResponse
+                {
+                    Message = "User not found",
+                    IsSuccess = false,
+                };
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (result.Succeeded)
+            {
+                return new UserManegerResponse
+                {
+                    Message = "Email confirmed successfully",
+                    IsSuccess = true,
+                };
+            }
+
+            return new UserManegerResponse
+            {
+                Message = "Email confirmation failed",
+                IsSuccess = false,
+                Errors = result.Errors.Select(e => e.Description),
             };
         }
 
