@@ -12,6 +12,7 @@
     <Compile Remove="Migrations\20240701191718_InitializingDatabase.cs" />
     <Compile Remove="Migrations\20240701191718_InitializingDatabase.Designer.cs" />
     <Compile Remove="Migrations\ERPMeioAmbienteContextModelSnapshot.cs" />
+    <Compile Remove="Services\IEmailService.cs" />
   </ItemGroup>
 
   <ItemGroup>

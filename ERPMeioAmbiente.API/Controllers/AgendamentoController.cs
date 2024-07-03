@@ -1,42 +1,38 @@
 ﻿using AutoMapper;
-using ERPMeioAmbiente.API.Data.Dtos;
 using ERPMeioAmbienteAPI.Data.Dtos;
-using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Models;
+using ERPMeioAmbienteAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace ERPMeioAmbiente.API.Controllers
+namespace ERPMeioAmbienteAPI.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]
-    [Authorize] // Proteger todas as rotas
+    [Authorize]
     public class AgendamentoController : ControllerBase
     {
-        private readonly ERPMeioAmbienteContext _context;
-        private readonly IMapper _mapper;
+        private readonly IAgendamentoService _agendamentoService;
 
-        public AgendamentoController(ERPMeioAmbienteContext context, IMapper mapper)
+        public AgendamentoController(IAgendamentoService agendamentoService)
         {
-            _context = context;
-            _mapper = mapper;
+            _agendamentoService = agendamentoService;
         }
 
         [HttpPost]
         [SwaggerOperation(Summary = "Adiciona um novo agendamento", Description = "Adiciona um novo agendamento para uma coleta")]
         [SwaggerResponse(201, "Agendamento criado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
-        public IActionResult AdicionaAgendamento([FromBody] CreateAgendamentoDto agendamentoDto)
+        public async Task<IActionResult> AdicionaAgendamento([FromBody] CreateAgendamentoDto agendamentoDto)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            Agendamento agendamento = _mapper.Map<Agendamento>(agendamentoDto);
-            _context.Agendamentos.Add(agendamento);
-            _context.SaveChanges();
+            var agendamento = await _agendamentoService.AddAgendamentoAsync(agendamentoDto);
             return CreatedAtAction(nameof(RecuperaAgendamentoPorId), new { id = agendamento.Id }, agendamento);
         }
 
@@ -44,13 +40,13 @@ namespace ERPMeioAmbiente.API.Controllers
         [SwaggerOperation(Summary = "Recupera todos os agendamentos", Description = "Recupera uma lista de todos os agendamentos do sistema")]
         [SwaggerResponse(200, "Lista de agendamentos recuperada com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
-        public IActionResult RecuperaAgendamentos([FromQuery] int skip = 0, [FromQuery] int take = 50)
+        public async Task<IActionResult> RecuperaAgendamentos([FromQuery] int skip = 0, [FromQuery] int take = 50)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var agendamentos = _mapper.Map<List<ReadAgendamentoDto>>(_context.Agendamentos.Skip(skip).Take(take).ToList());
+            var agendamentos = await _agendamentoService.GetAllAgendamentosAsync(skip, take);
             return Ok(agendamentos);
         }
 
@@ -59,14 +55,13 @@ namespace ERPMeioAmbiente.API.Controllers
         [SwaggerResponse(200, "Agendamento recuperado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Agendamento não encontrado")]
-        public IActionResult RecuperaAgendamentoPorId(int id)
+        public async Task<IActionResult> RecuperaAgendamentoPorId(int id)
         {
-            var agendamento = _context.Agendamentos.FirstOrDefault(agendamento => agendamento.Id == id);
-            if (agendamento == null)
+            var agendamentoDto = await _agendamentoService.GetAgendamentoByIdAsync(id);
+            if (agendamentoDto == null)
             {
                 return NotFound();
             }
-            var agendamentoDto = _mapper.Map<ReadAgendamentoDto>(agendamento);
             return Ok(agendamentoDto);
         }
 
@@ -75,52 +70,38 @@ namespace ERPMeioAmbiente.API.Controllers
         [SwaggerResponse(204, "Agendamento atualizado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Agendamento não encontrado")]
-        public IActionResult AtualizaAgendamento(int id, [FromBody] UpdateAgendamentoDto agendamentoDto)
+        public async Task<IActionResult> AtualizaAgendamento(int id, [FromBody] UpdateAgendamentoDto agendamentoDto)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
 
-            var agendamento = _context.Agendamentos.FirstOrDefault(a => a.Id == id);
-            if (agendamento == null)
-                return NotFound("Agendamento não encontrado");
-
-            var coleta = _context.Coletas.FirstOrDefault(c => c.Id == agendamentoDto.ColetaId);
-            if (coleta == null)
-                return BadRequest("Coleta associada não encontrada");
-
-            _mapper.Map(agendamentoDto, agendamento);
-
-            agendamento.Coleta = coleta; // Associar a coleta corretamente
-
-            try
+            var updated = await _agendamentoService.UpdateAgendamentoAsync(id, agendamentoDto);
+            if (!updated)
             {
-                _context.SaveChanges();
-                return NoContent();
+                return NotFound();
             }
-            catch (DbUpdateException ex)
-            {
-                return StatusCode(500, $"Erro ao atualizar o agendamento: {ex.InnerException?.Message ?? ex.Message}");
-            }
+            return NoContent();
         }
-
 
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Deleta agendamento por ID", Description = "Deleta um agendamento específico pelo ID")]
         [SwaggerResponse(204, "Agendamento deletado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Agendamento não encontrado")]
-        public IActionResult DeletaAgendamento(int id)
+        public async Task<IActionResult> DeletaAgendamento(int id)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var agendamento = _context.Agendamentos.FirstOrDefault(agendamento => agendamento.Id == id);
-            if (agendamento == null) return NotFound();
-            _context.Remove(agendamento);
-            _context.SaveChanges();
+
+            var deleted = await _agendamentoService.DeleteAgendamentoAsync(id);
+            if (!deleted)
+            {
+                return NotFound();
+            }
             return NoContent();
         }
     }

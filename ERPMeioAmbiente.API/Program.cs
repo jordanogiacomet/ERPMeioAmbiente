@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Logging;
-using System.Text;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,14 +19,12 @@ builder.Services.AddDbContext<ERPMeioAmbienteContext>(opts =>
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-builder.Services.AddScoped<IEmailService, EmailService>();
-
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequiredLength = 5;
-    options.SignIn.RequireConfirmedEmail = true; // Add this line
+    options.SignIn.RequireConfirmedEmail = true;
 }).AddEntityFrameworkStores<ERPMeioAmbienteContext>()
   .AddDefaultTokenProviders();
 
@@ -54,7 +51,15 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("FuncionarioPolicy", policy => policy.RequireRole("Funcionario"));
 });
 
+builder.Services.AddTransient<IEmailService, EmailServices>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<IResiduoService, ResiduoService>();
+builder.Services.AddScoped<IFuncionarioService, FuncionarioService>();
+builder.Services.AddScoped<IColetaService, ColetaService>();
+builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 
 builder.Services.AddControllers();
 
@@ -63,7 +68,6 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ERPMeioAmbienteAPI", Version = "v1" });
     c.EnableAnnotations();
-    // Adiciona a configuração de segurança
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -98,7 +102,6 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var context = scope.ServiceProvider.GetRequiredService<ERPMeioAmbienteContext>();
 
-    // Verificar e criar roles se necessário
     string[] roles = new[] { "Admin", "Cliente", "Funcionario" };
     foreach (var role in roles)
     {
@@ -116,7 +119,6 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Criar usuário admin se não existir
     var adminEmail = "admin@example.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     if (adminUser == null)
@@ -125,7 +127,7 @@ using (var scope = app.Services.CreateScope())
         {
             UserName = adminEmail,
             Email = adminEmail,
-            EmailConfirmed = true // Set the admin email as confirmed
+            EmailConfirmed = true
         };
         var result = await userManager.CreateAsync(adminUser, "Admin@123");
         if (result.Succeeded)
@@ -141,14 +143,13 @@ using (var scope = app.Services.CreateScope())
                 logger.LogError($"Erro ao atribuir roles ao usuário {adminEmail}: {string.Join(", ", rolesResult.Errors.Select(e => e.Description))}");
             }
 
-            // Criar registro de funcionário
             var funcionario = new Funcionario
             {
                 Nome = "Administrador",
                 Email = adminEmail,
                 Telefone = "000000000",
                 UserId = adminUser.Id,
-                User = adminUser // Associar o usuário ao funcionário
+                User = adminUser
             };
             context.Funcionarios.Add(funcionario);
             await context.SaveChangesAsync();

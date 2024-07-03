@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
-using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Data.Dtos;
-using ERPMeioAmbienteAPI.Models;
+using ERPMeioAmbienteAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ERPMeioAmbienteAPI.Controllers
 {
@@ -14,12 +14,12 @@ namespace ERPMeioAmbienteAPI.Controllers
     [Route("api/[Controller]")]
     public class ResiduoController : ControllerBase
     {
-        private readonly ERPMeioAmbienteContext _context;
+        private readonly IResiduoService _residuoService;
         private readonly IMapper _mapper;
 
-        public ResiduoController(ERPMeioAmbienteContext context, IMapper mapper)
+        public ResiduoController(IResiduoService residuoService, IMapper mapper)
         {
-            _context = context;
+            _residuoService = residuoService;
             _mapper = mapper;
         }
 
@@ -28,15 +28,13 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerOperation(Summary = "Adiciona um novo resíduo", Description = "Adiciona um novo resíduo ao sistema")]
         [SwaggerResponse(201, "Resíduo criado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
-        public IActionResult AdicionaResiduo([FromBody] CreateResiduoDto residuoDto)
+        public async Task<IActionResult> AdicionaResiduo([FromBody] CreateResiduoDto residuoDto)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            Residuo residuo = _mapper.Map<Residuo>(residuoDto);
-            _context.Residuos.Add(residuo);
-            _context.SaveChanges();
+            var residuo = await _residuoService.AddResiduoAsync(residuoDto);
             return CreatedAtAction(nameof(RecuperaResiduoPorId), new { id = residuo.Id }, residuo);
         }
 
@@ -45,13 +43,13 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerOperation(Summary = "Recupera todos os resíduos", Description = "Recupera uma lista de todos os resíduos do sistema")]
         [SwaggerResponse(200, "Lista de resíduos recuperada com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
-        public IActionResult RecuperaResiduos([FromQuery] int skip = 0, [FromQuery] int take = 50)
+        public async Task<IActionResult> RecuperaResiduos([FromQuery] int skip = 0, [FromQuery] int take = 50)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var residuos = _mapper.Map<List<ReadResiduoDto>>(_context.Residuos.Skip(skip).Take(take).ToList());
+            var residuos = await _residuoService.GetAllResiduosAsync(skip, take);
             return Ok(residuos);
         }
 
@@ -61,19 +59,18 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(200, "Resíduo recuperado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Resíduo não encontrado")]
-        public IActionResult RecuperaResiduoPorId(int id)
+        public async Task<IActionResult> RecuperaResiduoPorId(int id)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var residuo = _context.Residuos.FirstOrDefault(residuo => residuo.Id == id);
+            var residuo = await _residuoService.GetResiduoByIdAsync(id);
             if (residuo == null)
             {
                 return NotFound();
             }
-            var residuoDto = _mapper.Map<ReadResiduoDto>(residuo);
-            return Ok(residuoDto);
+            return Ok(residuo);
         }
 
         [HttpPut("{id}")]
@@ -82,16 +79,14 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(204, "Resíduo atualizado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Resíduo não encontrado")]
-        public IActionResult AtualizaResiduo(int id, [FromBody] UpdateResiduoDto residuoDto)
+        public async Task<IActionResult> AtualizaResiduo(int id, [FromBody] UpdateResiduoDto residuoDto)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var residuo = _context.Residuos.FirstOrDefault(residuo => residuo.Id == id);
-            if (residuo == null) return NotFound();
-            _mapper.Map(residuoDto, residuo);
-            _context.SaveChanges();
+            var updated = await _residuoService.UpdateResiduoAsync(id, residuoDto);
+            if (!updated) return NotFound();
             return NoContent();
         }
 
@@ -101,16 +96,14 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(204, "Resíduo deletado com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Resíduo não encontrado")]
-        public IActionResult DeletaResiduo(int id)
+        public async Task<IActionResult> DeletaResiduo(int id)
         {
             if (User.IsInRole("Cliente"))
             {
                 return Unauthorized();
             }
-            var residuo = _context.Residuos.FirstOrDefault(residuo => residuo.Id == id);
-            if (residuo == null) return NotFound();
-            _context.Remove(residuo);
-            _context.SaveChanges();
+            var deleted = await _residuoService.DeleteResiduoAsync(id);
+            if (!deleted) return NotFound();
             return NoContent();
         }
     }

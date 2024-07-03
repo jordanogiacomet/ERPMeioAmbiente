@@ -2,10 +2,13 @@
 using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Http;
 
 namespace ERPMeioAmbienteAPI.Services
 {
@@ -18,20 +21,21 @@ namespace ERPMeioAmbienteAPI.Services
         Task<UserManegerResponse> ConfirmEmailAsync(string userId, string token);
     }
 
-
     public class UserService : IUserService
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly ERPMeioAmbienteContext _context;
         private readonly IEmailService _emailService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context, IEmailService emailService)
+        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context, IEmailService emailService, IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _configuration = configuration;
             _context = context;
             _emailService = emailService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<UserManegerResponse> RegisterUserAsync(RegisterViewModel model)
@@ -50,49 +54,75 @@ namespace ERPMeioAmbienteAPI.Services
                 };
             }
 
-            var identityUser = new IdentityUser
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                Email = model.Email,
-                UserName = model.Email,
-            };
-
-            var result = await _userManager.CreateAsync(identityUser, model.Password);
-
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(identityUser, "Cliente");
-                var cliente = new Cliente
+                try
                 {
-                    Nome = model.Nome,
-                    Contato = model.Contato,
-                    CNPJ = model.CNPJ,
-                    Endereco = model.Endereco,
-                    CEP = model.CEP,
-                    UserId = identityUser.Id,
-                };
+                    var identityUser = new IdentityUser
+                    {
+                        Email = model.Email,
+                        UserName = model.Email,
+                    };
 
-                _context.Clientes.Add(cliente);
-                await _context.SaveChangesAsync();
+                    var result = await _userManager.CreateAsync(identityUser, model.Password);
 
-                var confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
-                var confirmationLink = $"http://localhost:7186/api/Auth/confirm-email?userId={identityUser.Id}&token={confirmationToken}";
-                await _emailService.SendEmailAsync(identityUser.Email, "Confirme seu email", $"Por favor, confirme seu email clicando no link: {confirmationLink}");
+                    if (result.Succeeded)
+                    {
+                        await _userManager.AddToRoleAsync(identityUser, "Cliente");
+                        var cliente = new Cliente
+                        {
+                            Nome = model.Nome,
+                            Contato = model.Contato,
+                            CNPJ = model.CNPJ,
+                            Endereco = model.Endereco,
+                            CEP = model.CEP,
+                            UserId = identityUser.Id,
+                        };
 
-                return new UserManegerResponse
+                        _context.Clientes.Add(cliente);
+                        await _context.SaveChangesAsync();
+
+                        var token = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
+                        var linkGenerator = _httpContextAccessor.HttpContext.RequestServices.GetRequiredService<LinkGenerator>();
+                        var confirmationLink = linkGenerator.GetUriByAction(
+                            _httpContextAccessor.HttpContext,
+                            action: "ConfirmEmail",
+                            controller: "User",
+                            values: new { token, email = identityUser.Email });
+
+                        var subject = "Welcome to ERPMeioAmbiente";
+                        var body = $"Hello {model.Nome},<br><br>Thank you for registering at ERPMeioAmbiente. Please confirm your email by clicking <a href='{confirmationLink}'>here</a>.";
+
+                        await _emailService.SendEmailAsync(model.Email, subject, body);
+
+                        await transaction.CommitAsync();
+
+                        return new UserManegerResponse
+                        {
+                            Message = "User created successfully.",
+                            IsSuccess = true,
+                        };
+                    }
+
+                    await transaction.RollbackAsync();
+                    return new UserManegerResponse
+                    {
+                        Message = "User did not create",
+                        IsSuccess = false,
+                        Errors = result.Errors.Select(e => e.Description)
+                    };
+                }
+                catch (Exception ex)
                 {
-                    Message = "User created successfully. Please check your email to confirm your account.",
-                    IsSuccess = true,
-                };
+                    await transaction.RollbackAsync();
+                    return new UserManegerResponse
+                    {
+                        Message = $"An error occurred: {ex.Message}",
+                        IsSuccess = false
+                    };
+                }
             }
-
-            return new UserManegerResponse
-            {
-                Message = "User did not create",
-                IsSuccess = false,
-                Errors = result.Errors.Select(e => e.Description)
-            };
         }
-
 
         public async Task<UserManegerResponse> LoginUserAsync(LoginViewModel model)
         {
@@ -153,6 +183,15 @@ namespace ERPMeioAmbienteAPI.Services
 
         public async Task<UserManegerResponse> ConfirmEmailAsync(string userId, string token)
         {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            {
+                return new UserManegerResponse
+                {
+                    Message = "User ID or token is invalid",
+                    IsSuccess = false,
+                };
+            }
+
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
@@ -177,7 +216,7 @@ namespace ERPMeioAmbienteAPI.Services
             {
                 Message = "Email confirmation failed",
                 IsSuccess = false,
-                Errors = result.Errors.Select(e => e.Description),
+                Errors = result.Errors.Select(e => e.Description).ToList(),
             };
         }
 
@@ -194,13 +233,10 @@ namespace ERPMeioAmbienteAPI.Services
             }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var resetLink = $"https://yourapp.com/resetpassword?email={model.Email}&token={token}";
 
-            // You would typically send the link via email
-            // For simplicity, we are returning the link in the response
             return new UserManegerResponse
             {
-                Message = resetLink,
+                Message = token,
                 IsSuccess = true,
             };
         }
