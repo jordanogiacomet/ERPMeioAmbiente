@@ -5,13 +5,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Logging;
 using System.Text;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("MeioAmbienteConnection");
 var key = builder.Configuration["AuthSettings:Key"];
+var issuer = builder.Configuration["AuthSettings:Issuer"];
+var audience = builder.Configuration["AuthSettings:Audience"];
 
 // Add services to the container.
 builder.Services.AddDbContext<ERPMeioAmbienteContext>(opts =>
@@ -36,11 +39,13 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = true,
+        ValidateAudience = true,
         RequireExpirationTime = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
         ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
     };
 });
 
@@ -54,7 +59,6 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddTransient<IEmailService, EmailServices>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddHttpContextAccessor();
-
 builder.Services.AddScoped<IResiduoService, ResiduoService>();
 builder.Services.AddScoped<IFuncionarioService, FuncionarioService>();
 builder.Services.AddScoped<IColetaService, ColetaService>();
@@ -99,16 +103,17 @@ using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var userManeger = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var context = scope.ServiceProvider.GetRequiredService<ERPMeioAmbienteContext>();
 
     string[] roles = new[] { "Admin", "Cliente", "Funcionario" };
     foreach (var role in roles)
     {
-        if (!await roleManager.RoleExistsAsync(role))
+        if(!await roleManager.RoleExistsAsync(role))
         {
             var roleResult = await roleManager.CreateAsync(new IdentityRole(role));
-            if (roleResult.Succeeded)
+            
+            if(roleResult.Succeeded)
             {
                 logger.LogInformation($"Role '{role}' criada com sucesso.");
             }
@@ -120,20 +125,21 @@ using (var scope = app.Services.CreateScope())
     }
 
     var adminEmail = "admin@example.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    var adminUser = await userManeger.FindByEmailAsync(adminEmail);
+
     if (adminUser == null)
     {
         adminUser = new IdentityUser
         {
             UserName = adminEmail,
             Email = adminEmail,
-            EmailConfirmed = true
+            EmailConfirmed = true,
         };
-        var result = await userManager.CreateAsync(adminUser, "Admin@123");
+        var result = await userManeger.CreateAsync(adminUser, "Admin@123");
         if (result.Succeeded)
         {
             logger.LogInformation($"Usuário admin criado com sucesso: {adminEmail}");
-            var rolesResult = await userManager.AddToRolesAsync(adminUser, new[] { "Admin", "Funcionario" });
+            var rolesResult = await userManeger.AddToRolesAsync(adminUser, new[] { "Admin", "Funcionario" });
             if (rolesResult.Succeeded)
             {
                 logger.LogInformation($"Roles 'Admin' e 'Funcionario' atribuídas ao usuário {adminEmail} com sucesso.");
@@ -142,7 +148,6 @@ using (var scope = app.Services.CreateScope())
             {
                 logger.LogError($"Erro ao atribuir roles ao usuário {adminEmail}: {string.Join(", ", rolesResult.Errors.Select(e => e.Description))}");
             }
-
             var funcionario = new Funcionario
             {
                 Nome = "Administrador",
@@ -164,6 +169,8 @@ using (var scope = app.Services.CreateScope())
     {
         logger.LogInformation($"Usuário admin já existe: {adminEmail}");
     }
+
+
 }
 
 if (app.Environment.IsDevelopment())

@@ -15,6 +15,6 @@ namespace ERPMeioAmbienteAPI.Models
         public string Categoria { get; set; }
         [Required(ErrorMessage = "O tipo do resíduo é obrigatório")]
         public string Tipo { get; set; }
-        public virtual ICollection<ColetaResiduo> ColetaResiduos { get; set; } // Relação muitos-para-muitos
+        public virtual ICollection<ColetaResiduo> ColetaResiduos { get; set; } 
     }
 }

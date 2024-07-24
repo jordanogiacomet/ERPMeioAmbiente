@@ -7,8 +7,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Http;
 
 namespace ERPMeioAmbienteAPI.Services
 {
@@ -27,15 +25,13 @@ namespace ERPMeioAmbienteAPI.Services
         private readonly IConfiguration _configuration;
         private readonly ERPMeioAmbienteContext _context;
         private readonly IEmailService _emailService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context, IEmailService emailService, IHttpContextAccessor httpContextAccessor)
+        public UserService(UserManager<IdentityUser> userManager, IConfiguration configuration, ERPMeioAmbienteContext context, IEmailService emailService)
         {
             _userManager = userManager;
             _configuration = configuration;
             _context = context;
             _emailService = emailService;
-            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<UserManegerResponse> RegisterUserAsync(RegisterViewModel model)
@@ -82,17 +78,9 @@ namespace ERPMeioAmbienteAPI.Services
                         _context.Clientes.Add(cliente);
                         await _context.SaveChangesAsync();
 
-                        var token = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
-                        var linkGenerator = _httpContextAccessor.HttpContext.RequestServices.GetRequiredService<LinkGenerator>();
-                        var confirmationLink = linkGenerator.GetUriByAction(
-                            _httpContextAccessor.HttpContext,
-                            action: "ConfirmEmail",
-                            controller: "User",
-                            values: new { token, email = identityUser.Email });
-
+                        // Enviar e-mail de boas-vindas
                         var subject = "Welcome to ERPMeioAmbiente";
-                        var body = $"Hello {model.Nome},<br><br>Thank you for registering at ERPMeioAmbiente. Please confirm your email by clicking <a href='{confirmationLink}'>here</a>.";
-
+                        var body = $"Hello {model.Nome},<br><br>Thank you for registering at ERPMeioAmbiente.";
                         await _emailService.SendEmailAsync(model.Email, subject, body);
 
                         await transaction.CommitAsync();
@@ -161,10 +149,12 @@ namespace ERPMeioAmbienteAPI.Services
             }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["AuthSettings:Key"]));
+            var issuer = _configuration["AuthSettings:Issuer"];
+            var audience = _configuration["AuthSettings:Audience"];
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["AuthSettings:Issuer"],
-                audience: _configuration["AuthSettings:Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
                 expires: DateTime.Now.AddDays(30),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
@@ -281,3 +271,4 @@ namespace ERPMeioAmbienteAPI.Services
         }
     }
 }
+

@@ -10,6 +10,8 @@ using ERPMeioAmbiente.Shared;
 using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 
 namespace ERPMeioAmbienteAPI.Tests.UnitTests
 {
@@ -19,11 +21,13 @@ namespace ERPMeioAmbienteAPI.Tests.UnitTests
         private readonly Mock<IConfiguration> _configurationMock;
         private readonly ERPMeioAmbienteContext _context;
         private readonly IUserService _userService;
+        private readonly Mock<IEmailService> _emailServiceMock;
 
         public UserServiceTests()
         {
             _userManagerMock = MockUserManager.CreateMockUserManager<IdentityUser>();
             _configurationMock = new Mock<IConfiguration>();
+            _emailServiceMock = new Mock<IEmailService>();
 
             // Configurando o contexto de banco de dados em memória
             var options = new DbContextOptionsBuilder<ERPMeioAmbienteContext>()
@@ -36,7 +40,8 @@ namespace ERPMeioAmbienteAPI.Tests.UnitTests
             _userService = new UserService(
                 _userManagerMock.Object,
                 _configurationMock.Object,
-                _context);
+                _context,
+                _emailServiceMock.Object);
         }
 
         [Fact]
@@ -53,6 +58,11 @@ namespace ERPMeioAmbienteAPI.Tests.UnitTests
                 Endereco = "Test Address",
                 CEP = "12345-678"
             };
+
+            _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Success);
+            _userManagerMock.Setup(x => x.AddToRoleAsync(It.IsAny<IdentityUser>(), "Cliente"))
+                .ReturnsAsync(IdentityResult.Success);
 
             var result = await _userService.RegisterUserAsync(model);
 
