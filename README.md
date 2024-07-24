@@ -1,44 +1,43 @@
-
 # ERPMeioAmbienteAPI
 
-ERPMeioAmbienteAPI is a RESTful API designed to manage clients, collections, employees, and products for an environmental management system. This API includes authentication and authorization using JWT tokens and role-based access control.
+ERPMeioAmbienteAPI é uma API RESTful projetada para gerenciar clientes, coletas, funcionários e produtos para um sistema de gerenciamento ambiental. Esta API inclui autenticação e autorização usando tokens JWT e controle de acesso baseado em funções.
 
-## Table of Contents
-- [Getting Started](#getting-started)
-- [Database Configuration](#database-configuration)
-- [Authentication and Authorization](#authentication-and-authorization)
-- [API Endpoints](#api-endpoints)
+## Índice
+- [Primeiros Passos](#primeiros-passos)
+- [Configuração do Banco de Dados](#configuração-do-banco-de-dados)
+- [Autenticação e Autorização](#autenticação-e-autorização)
+- [Endpoints da API](#endpoints-da-api)
   - [Auth](#auth)
   - [Cliente](#cliente)
   - [Coleta](#coleta)
-  - [Funcionario](#funcionario)
+  - [Funcionário](#funcionário)
   - [Produto](#produto)
-- [Swagger Documentation](#swagger-documentation)
-- [Logging](#logging)
-- [Contributing](#contributing)
+- [Documentação Swagger](#documentação-swagger)
+- [Registro de Logs](#registro-de-logs)
+- [Contribuindo](#contribuindo)
 
-## Getting Started
+## Primeiros Passos
 
-### Prerequisites
+### Pré-requisitos
 - .NET 8.0 SDK
-- MySQL Server
+- Servidor MySQL
 
-### Installation
-1. Clone the repository
+### Instalação
+1. Clone o repositório
    ```sh
-   git clone https://github.com/yourusername/ERPMeioAmbienteAPI.git
+   git clone https://github.com/seuusuario/ERPMeioAmbienteAPI.git
    ```
-2. Navigate to the project directory
+2. Navegue até o diretório do projeto
    ```sh
    cd ERPMeioAmbienteAPI
    ```
-3. Install the required packages
+3. Instale os pacotes necessários
    ```sh
    dotnet restore
    ```
 
-### Configuration
-Update the `appsettings.json` file with your database connection string and JWT settings:
+### Configuração
+Atualize o arquivo `appsettings.json` com sua string de conexão do banco de dados e configurações JWT:
 ```json
 {
   "Logging": {
@@ -59,26 +58,23 @@ Update the `appsettings.json` file with your database connection string and JWT 
 }
 ```
 
-### Running the Application
-1. Update the database
+### Executando a Aplicação
+1. Atualize o banco de dados
    ```sh
    dotnet ef database update
    ```
-2. Run the application
+2. Execute a aplicação
    ```sh
    dotnet run
    ```
 
-## Database Configuration
-The database is configured using Entity Framework Core with MySQL. Ensure your `appsettings.json` file has the correct connection string.
-
-## Authentication and Authorization
-The API uses JWT tokens for authentication and role-based access control. The roles available are:
+## Autenticação e Autorização
+A API usa tokens JWT para autenticação e controle de acesso baseado em funções. As funções disponíveis são:
 - Admin
 - Cliente
 - Funcionario
 
-## API Endpoints
+## Endpoints da API
 
 ### Auth
 - **Register**
@@ -177,14 +173,14 @@ The API uses JWT tokens for authentication and role-based access control. The ro
   - `DELETE /api/Produto/{id}`
   - Deletes a product by ID.
 
-## Swagger Documentation
-The API documentation is available via Swagger. Navigate to `https://localhost:7186/swagger` to access the Swagger UI.
+## Documentação Swagger
+A documentação da API está disponível via Swagger. Navegue até `https://localhost:7186/swagger` para acessar a UI do Swagger.
 
-## Logging
-The application uses the default logging provided by ASP.NET Core. Logs will show important information about role creation, user registration, and errors.
+## Registro de Logs
+A aplicação usa o registro de logs padrão fornecido pelo ASP.NET Core. Os logs mostrarão informações importantes sobre a criação de funções, registro de usuários e erros.
 
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+## Contribuindo
+Contribuições são bem-vindas! Por favor, abra um issue ou envie um pull request no GitHub.
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Licença
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
