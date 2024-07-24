@@ -5,6 +5,7 @@ using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ERPMeioAmbienteAPI.Services
@@ -31,7 +32,18 @@ namespace ERPMeioAmbienteAPI.Services
 
         public async Task<Coleta> AddColetaAsync(CreateColetaDto coletaDto)
         {
+            // Verificar existência do cliente
+            var clienteExiste = await _context.Clientes.AnyAsync(c => c.Id == coletaDto.ClienteId);
+            if (!clienteExiste) throw new ArgumentException("Cliente não encontrado.");
+
+            // Verificar existência dos resíduos
+            var residuosExistentes = await _context.Residuos.Where(r => coletaDto.ResiduoIds.Contains(r.Id)).ToListAsync();
+            if (residuosExistentes.Count != coletaDto.ResiduoIds.Count)
+                throw new ArgumentException("Um ou mais resíduos não encontrados.");
+
             var coleta = _mapper.Map<Coleta>(coletaDto);
+            coleta.ColetaResiduos = residuosExistentes.Select(r => new ColetaResiduo { ResiduoId = r.Id }).ToList();
+
             _context.Coletas.Add(coleta);
             await _context.SaveChangesAsync();
             return coleta;
@@ -41,8 +53,8 @@ namespace ERPMeioAmbienteAPI.Services
         {
             var coletas = await _context.Coletas
                 .Include(c => c.Cliente)
-                .Include(c => c.ColetaResiduos)
-                .ThenInclude(cr => cr.Residuo)
+                .Include(c => c.ColetaResiduos).ThenInclude(cr => cr.Residuo)
+                .Include(c => c.Agendamento)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
@@ -53,14 +65,11 @@ namespace ERPMeioAmbienteAPI.Services
         public async Task<ReadColetaDto> GetColetaByIdAsync(int id)
         {
             var coleta = await _context.Coletas
-                .Include(c => c.ColetaResiduos)
-                .ThenInclude(cr => cr.Residuo)
+                .Include(c => c.ColetaResiduos).ThenInclude(cr => cr.Residuo)
+                .Include(c => c.Agendamento)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
-            if (coleta == null)
-            {
-                return null;
-            }
+            if (coleta == null) return null;
 
             return _mapper.Map<ReadColetaDto>(coleta);
         }
@@ -75,30 +84,10 @@ namespace ERPMeioAmbienteAPI.Services
 
             _mapper.Map(coletaDto, coleta);
 
-            // Atualizar a relação muitos-para-muitos
-            var existingResiduoIds = coleta.ColetaResiduos.Select(cr => cr.ResiduoId).ToList();
-            var newResiduoIds = coletaDto.ResiduoIds.Except(existingResiduoIds).ToList();
-            var removedResiduoIds = existingResiduoIds.Except(coletaDto.ResiduoIds).ToList();
-
-            // Adicionar novos resíduos
-            foreach (var residuoId in newResiduoIds)
-            {
-                var residuo = await _context.Residuos.FindAsync(residuoId);
-                if (residuo != null)
-                {
-                    coleta.ColetaResiduos.Add(new ColetaResiduo { ColetaId = coleta.Id, ResiduoId = residuoId });
-                }
-            }
-
-            // Remover resíduos antigos
-            foreach (var residuoId in removedResiduoIds)
-            {
-                var residuoToRemove = coleta.ColetaResiduos.FirstOrDefault(cr => cr.ResiduoId == residuoId);
-                if (residuoToRemove != null)
-                {
-                    _context.ColetaResiduos.Remove(residuoToRemove);
-                }
-            }
+            // Atualizar a relação muitos-para-muitos para resíduos
+            coleta.ColetaResiduos.Clear();
+            var residuos = await _context.Residuos.Where(r => coletaDto.ResiduoIds.Contains(r.Id)).ToListAsync();
+            coleta.ColetaResiduos = residuos.Select(r => new ColetaResiduo { ColetaId = coleta.Id, ResiduoId = r.Id }).ToList();
 
             await _context.SaveChangesAsync();
             return true;
@@ -107,23 +96,11 @@ namespace ERPMeioAmbienteAPI.Services
         public async Task<bool> DeleteColetaAsync(int id)
         {
             var coleta = await _context.Coletas.FirstOrDefaultAsync(c => c.Id == id);
-            if (coleta == null)
-            {
-                Console.WriteLine($"Coleta com ID {id} não encontrada."); // Adicione uma mensagem de depuração
-                return false;
-            }
+            if (coleta == null) return false;
 
             _context.Coletas.Remove(coleta);
-            try
-            {
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                Console.WriteLine($"Erro ao deletar a coleta com ID {id}: {ex.Message}");
-                return false;
-            }
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

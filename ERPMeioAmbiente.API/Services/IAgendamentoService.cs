@@ -31,65 +31,76 @@ namespace ERPMeioAmbienteAPI.Services
 
         public async Task<Agendamento> AddAgendamentoAsync(CreateAgendamentoDto agendamentoDto)
         {
-            Agendamento agendamento = _mapper.Map<Agendamento>(agendamentoDto);
+            var coleta = await _context.Coletas.FindAsync(agendamentoDto.ColetaId);
+            if (coleta == null)
+            {
+                throw new ArgumentException("Coleta não encontrada.");
+            }
+            var motorista = await _context.Motoristas.FindAsync(agendamentoDto.MotoristaId);
+            if (motorista == null)
+            {
+                throw new ArgumentException("Motorista não encontrado.");
+            }
+
+            var agendamento = _mapper.Map<Agendamento>(agendamentoDto);
             _context.Agendamentos.Add(agendamento);
             await _context.SaveChangesAsync();
+
             return agendamento;
         }
 
         public async Task<List<ReadAgendamentoDto>> GetAllAgendamentosAsync(int skip, int take)
         {
-            var agendamentos = await _context.Agendamentos.Skip(skip).Take(take).ToListAsync();
+            var agendamentos = await _context.Agendamentos
+                .Include(a => a.Motorista)
+                .Include(a => a.Coleta)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
+
             return _mapper.Map<List<ReadAgendamentoDto>>(agendamentos);
         }
 
         public async Task<ReadAgendamentoDto> GetAgendamentoByIdAsync(int id)
         {
-            var agendamento = await _context.Agendamentos.FirstOrDefaultAsync(a => a.Id == id);
-            if (agendamento == null)
-            {
-                return null;
-            }
+            var agendamento = await _context.Agendamentos
+                .Include(a => a.Motorista)
+                .Include(a => a.Coleta)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (agendamento == null) return null;
+
             return _mapper.Map<ReadAgendamentoDto>(agendamento);
         }
 
         public async Task<bool> UpdateAgendamentoAsync(int id, UpdateAgendamentoDto agendamentoDto)
         {
-            var agendamento = await _context.Agendamentos.FirstOrDefaultAsync(a => a.Id == id);
-            if (agendamento == null)
-            {
-                return false;
-            }
+            var agendamento = await _context.Agendamentos.FindAsync(id);
+            if (agendamento == null) return false;
 
-            var coleta = await _context.Coletas.FirstOrDefaultAsync(c => c.Id == agendamentoDto.ColetaId);
+            var coleta = await _context.Coletas.FindAsync(agendamentoDto.ColetaId);
             if (coleta == null)
             {
-                return false;
+                throw new ArgumentException("Coleta não encontrada.");
+            }
+
+            var motorista = await _context.Motoristas.FindAsync(agendamentoDto.MotoristaId);
+            if (motorista == null)
+            {
+                throw new ArgumentException("Motorista não encontrado.");
             }
 
             _mapper.Map(agendamentoDto, agendamento);
-            agendamento.Coleta = coleta; // Associar a coleta corretamente
-
-            try
-            {
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (DbUpdateException)
-            {
-                return false;
-            }
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> DeleteAgendamentoAsync(int id)
         {
-            var agendamento = await _context.Agendamentos.FirstOrDefaultAsync(a => a.Id == id);
-            if (agendamento == null)
-            {
-                return false;
-            }
+            var agendamento = await _context.Agendamentos.FindAsync(id);
+            if (agendamento == null) return false;
 
-            _context.Remove(agendamento);
+            _context.Agendamentos.Remove(agendamento);
             await _context.SaveChangesAsync();
             return true;
         }

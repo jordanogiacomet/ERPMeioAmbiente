@@ -5,7 +5,9 @@ using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ERPMeioAmbienteAPI.Services
@@ -41,33 +43,42 @@ namespace ERPMeioAmbienteAPI.Services
 
         public async Task<Cliente> AddClienteAsync(CreateClienteDto clienteDto)
         {
-            var cliente = _mapper.Map<Cliente>(clienteDto);
-
-            if (!string.IsNullOrEmpty(clienteDto.Email) && !string.IsNullOrEmpty(clienteDto.Password))
+            try
             {
-                var identityUser = new IdentityUser
-                {
-                    Email = clienteDto.Email,
-                    UserName = clienteDto.Email,
-                };
+                var cliente = _mapper.Map<Cliente>(clienteDto);
 
-                var result = await _userManager.CreateAsync(identityUser, clienteDto.Password);
+                if (!string.IsNullOrEmpty(clienteDto.Email) && !string.IsNullOrEmpty(clienteDto.Password))
+                {
+                    var identityUser = new IdentityUser
+                    {
+                        Email = clienteDto.Email,
+                        UserName = clienteDto.Email,
+                    };
 
-                if (result.Succeeded)
-                {
-                    await _userManager.AddToRoleAsync(identityUser, "Cliente");
-                    cliente.UserId = identityUser.Id;
+                    var result = await _userManager.CreateAsync(identityUser, clienteDto.Password);
+
+                    if (result.Succeeded)
+                    {
+                        await _userManager.AddToRoleAsync(identityUser, "Cliente");
+                        cliente.UserId = identityUser.Id;
+                    }
+                    else
+                    {
+                        throw new Exception("Erro ao criar usuário: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                    }
                 }
-                else
-                {
-                    throw new System.Exception("Erro ao criar usuário: " + string.Join(", ", result.Errors.Select(e => e.Description)));
-                }
+
+                _context.Clientes.Add(cliente);
+                await _context.SaveChangesAsync();
+                return cliente;
             }
-
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-            return cliente;
+            catch (Exception ex)
+            {
+                var innerExceptionMessage = ex.InnerException?.Message ?? "N/A";
+                throw new Exception($"Erro ao adicionar cliente: {ex.Message}. Inner Exception: {innerExceptionMessage}", ex);
+            }
         }
+
 
         public async Task<List<ReadClienteDto>> GetAllClientesAsync(int skip, int take)
         {
@@ -80,7 +91,7 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(cliente => cliente.Id == id);
             if (cliente == null)
             {
-                return null;
+                throw new Exception("Cliente não encontrado.");
             }
             return _mapper.Map<ReadClienteDto>(cliente);
         }
@@ -90,7 +101,7 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return null;
+                throw new Exception("Cliente não encontrado.");
             }
             return _mapper.Map<ReadClienteDto>(cliente);
         }
@@ -100,7 +111,7 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return null;
+                throw new Exception("Cliente não encontrado.");
             }
 
             _mapper.Map(clienteDto, cliente);
@@ -111,7 +122,7 @@ namespace ERPMeioAmbienteAPI.Services
         public async Task<bool> UpdateClienteAsync(int id, UpdateClienteDto clienteDto)
         {
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Id == id);
-            if (cliente == null) return false;
+            if (cliente == null) throw new Exception("Cliente não encontrado.");
 
             _mapper.Map(clienteDto, cliente);
             await _context.SaveChangesAsync();
@@ -127,20 +138,20 @@ namespace ERPMeioAmbienteAPI.Services
                     var cliente = await _context.Clientes.Include(c => c.User).FirstOrDefaultAsync(c => c.Id == id);
                     if (cliente == null)
                     {
-                        return false;
+                        throw new Exception("Cliente não encontrado.");
                     }
 
                     var user = await _userManager.FindByIdAsync(cliente.UserId);
                     if (user == null)
                     {
-                        return false;
+                        throw new Exception("Usuário não encontrado.");
                     }
 
                     _context.Clientes.Remove(cliente);
                     var userResult = await _userManager.DeleteAsync(user);
                     if (!userResult.Succeeded)
                     {
-                        throw new System.Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
+                        throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
                     }
 
                     await _context.SaveChangesAsync();
@@ -160,7 +171,7 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return null;
+                throw new Exception("Cliente não encontrado.");
             }
 
             var coleta = _mapper.Map<Coleta>(coletaDto);
@@ -189,12 +200,13 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return null;
+                throw new Exception("Cliente não encontrado.");
             }
 
             var coletas = await _context.Coletas
                 .Include(c => c.ColetaResiduos)
                 .ThenInclude(cr => cr.Residuo)
+                .Include(c => c.Agendamento)
                 .Where(c => c.ClienteId == cliente.Id)
                 .ToListAsync();
 
@@ -206,16 +218,17 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return null;
+                throw new Exception("Cliente não encontrado.");
             }
 
             var coleta = await _context.Coletas
                 .Include(c => c.ColetaResiduos)
                 .ThenInclude(cr => cr.Residuo)
+                .Include(c => c.Agendamento)
                 .FirstOrDefaultAsync(c => c.Id == id && c.ClienteId == cliente.Id);
             if (coleta == null)
             {
-                return null;
+                throw new Exception("Coleta não encontrada.");
             }
 
             return _mapper.Map<ReadColetaDto>(coleta);
@@ -226,7 +239,7 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return false;
+                throw new Exception("Cliente não encontrado.");
             }
 
             var coleta = await _context.Coletas
@@ -234,7 +247,7 @@ namespace ERPMeioAmbienteAPI.Services
                 .FirstOrDefaultAsync(c => c.Id == id && c.ClienteId == cliente.Id);
             if (coleta == null)
             {
-                return false;
+                throw new Exception("Coleta não encontrada.");
             }
 
             _mapper.Map(coletaDto, coleta);
@@ -245,7 +258,7 @@ namespace ERPMeioAmbienteAPI.Services
                 var residuo = await _context.Residuos.FindAsync(residuoId);
                 if (residuo == null)
                 {
-                    return false;
+                    throw new Exception($"Residuo com ID {residuoId} não encontrado.");
                 }
                 coleta.ColetaResiduos.Add(new ColetaResiduo { ResiduoId = residuoId, Residuo = residuo });
             }
@@ -259,13 +272,13 @@ namespace ERPMeioAmbienteAPI.Services
             var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cliente == null)
             {
-                return false;
+                throw new Exception("Cliente não encontrado.");
             }
 
             var coleta = await _context.Coletas.FirstOrDefaultAsync(c => c.Id == id && c.ClienteId == cliente.Id);
             if (coleta == null)
             {
-                return false;
+                throw new Exception("Coleta não encontrada.");
             }
 
             _context.Remove(coleta);

@@ -17,15 +17,11 @@ namespace ERPMeioAmbienteAPI.Models
         public virtual Coleta Coleta { get; set; }
 
         [Required]
-        public string Motorista { get; set; }
+        public int MotoristaId { get; set; } 
+        [ForeignKey("MotoristaId")]
+        public virtual Motorista Motorista { get; set; } 
 
-        [Required]
-        public string Veiculo { get; set; }
-
-        [Required]
-        public string TipoVeiculo { get; set; }
-
-        [Required]
+        [Required(ErrorMessage = "O horário de chegada é obrigatório")]
         public DateTime HorarioChegada { get; set; }
     }
 }

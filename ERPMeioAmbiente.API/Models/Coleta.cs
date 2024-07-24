@@ -9,18 +9,24 @@ namespace ERPMeioAmbiente.API.Models
         [Key]
         [Required]
         public int Id { get; set; }
-        [Required]
-        public string Nvol { get; set; }
-        [Required]
-        public string Peso { get; set; }
-        [Required]
+
+        [Required(ErrorMessage = "O número de volumes é obrigatório")]
+        public int NumeroVolume { get; set; } // Nome mais descritivo
+
+        [Required(ErrorMessage = "O peso total é obrigatório")]
+        public double PesoTotal { get; set; } // Nome mais descritivo e tipo ajustado
+
+        [Required(ErrorMessage = "As dimensões são obrigatórias")]
         public string Dimensoes { get; set; }
-        [Required]
+
+        [Required(ErrorMessage = "O endereço é obrigatório")]
         public string Endereco { get; set; }
+
         [Required]
-        public int ClienteId { get; set; } // Adjusted to int
+        public int ClienteId { get; set; }
         [ForeignKey("ClienteId")]
         public virtual Cliente Cliente { get; set; }
+
         public virtual ICollection<ColetaResiduo> ColetaResiduos { get; set; } = new List<ColetaResiduo>();
 
         public virtual Agendamento Agendamento { get; set; }

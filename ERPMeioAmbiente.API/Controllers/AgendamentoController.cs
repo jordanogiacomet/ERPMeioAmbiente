@@ -1,39 +1,51 @@
 ﻿using AutoMapper;
 using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
-using ERPMeioAmbienteAPI.Services;
+using ERPMeioAmbiente.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ERPMeioAmbienteAPI.Services;
 
 namespace ERPMeioAmbienteAPI.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]
-    [Authorize]
+    [Authorize] // Autoriza todas as rotas
     public class AgendamentoController : ControllerBase
     {
         private readonly IAgendamentoService _agendamentoService;
+        private readonly IMapper _mapper;
 
-        public AgendamentoController(IAgendamentoService agendamentoService)
+        public AgendamentoController(IAgendamentoService agendamentoService, IMapper mapper)
         {
             _agendamentoService = agendamentoService;
+            _mapper = mapper;
         }
 
         [HttpPost]
-        [SwaggerOperation(Summary = "Adiciona um novo agendamento", Description = "Adiciona um novo agendamento para uma coleta")]
+        [SwaggerOperation(Summary = "Adiciona um novo agendamento", Description = "Adiciona um novo agendamento ao sistema")]
         [SwaggerResponse(201, "Agendamento criado com sucesso")]
+        [SwaggerResponse(400, "Dados de entrada inválidos")]
         [SwaggerResponse(401, "Não autorizado")]
         public async Task<IActionResult> AdicionaAgendamento([FromBody] CreateAgendamentoDto agendamentoDto)
         {
-            if (User.IsInRole("Cliente"))
+            if (!ModelState.IsValid)
             {
-                return Unauthorized();
+                return BadRequest(ModelState);
             }
-            var agendamento = await _agendamentoService.AddAgendamentoAsync(agendamentoDto);
-            return CreatedAtAction(nameof(RecuperaAgendamentoPorId), new { id = agendamento.Id }, agendamento);
+
+            try
+            {
+                var agendamento = await _agendamentoService.AddAgendamentoAsync(agendamentoDto);
+                return CreatedAtAction(nameof(RecuperaAgendamentoPorId), new { id = agendamento.Id }, agendamento);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet]
@@ -42,10 +54,6 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(401, "Não autorizado")]
         public async Task<IActionResult> RecuperaAgendamentos([FromQuery] int skip = 0, [FromQuery] int take = 50)
         {
-            if (User.IsInRole("Cliente"))
-            {
-                return Unauthorized();
-            }
             var agendamentos = await _agendamentoService.GetAllAgendamentosAsync(skip, take);
             return Ok(agendamentos);
         }
@@ -57,32 +65,40 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(404, "Agendamento não encontrado")]
         public async Task<IActionResult> RecuperaAgendamentoPorId(int id)
         {
-            var agendamentoDto = await _agendamentoService.GetAgendamentoByIdAsync(id);
-            if (agendamentoDto == null)
+            var agendamento = await _agendamentoService.GetAgendamentoByIdAsync(id);
+            if (agendamento == null)
             {
-                return NotFound();
+                return NotFound("Agendamento não encontrado.");
             }
-            return Ok(agendamentoDto);
+            return Ok(agendamento);
         }
 
         [HttpPut("{id}")]
         [SwaggerOperation(Summary = "Atualiza agendamento por ID", Description = "Atualiza os dados de um agendamento específico pelo ID")]
         [SwaggerResponse(204, "Agendamento atualizado com sucesso")]
+        [SwaggerResponse(400, "Dados de entrada inválidos")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(404, "Agendamento não encontrado")]
         public async Task<IActionResult> AtualizaAgendamento(int id, [FromBody] UpdateAgendamentoDto agendamentoDto)
         {
-            if (User.IsInRole("Cliente"))
+            if (!ModelState.IsValid)
             {
-                return Unauthorized();
+                return BadRequest(ModelState);
             }
 
-            var updated = await _agendamentoService.UpdateAgendamentoAsync(id, agendamentoDto);
-            if (!updated)
+            try
             {
-                return NotFound();
+                var updated = await _agendamentoService.UpdateAgendamentoAsync(id, agendamentoDto);
+                if (!updated)
+                {
+                    return NotFound("Agendamento não encontrado.");
+                }
+                return NoContent();
             }
-            return NoContent();
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]
@@ -92,15 +108,10 @@ namespace ERPMeioAmbienteAPI.Controllers
         [SwaggerResponse(404, "Agendamento não encontrado")]
         public async Task<IActionResult> DeletaAgendamento(int id)
         {
-            if (User.IsInRole("Cliente"))
-            {
-                return Unauthorized();
-            }
-
             var deleted = await _agendamentoService.DeleteAgendamentoAsync(id);
             if (!deleted)
             {
-                return NotFound();
+                return NotFound("Agendamento não encontrado.");
             }
             return NoContent();
         }

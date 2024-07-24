@@ -70,6 +70,26 @@ namespace ERPMeioAmbiente.API.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Motoristas",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Nome = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    NumeroCarteiraHabilitacao = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Telefone = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    VeiculoId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Motoristas", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Residuos",
                 columns: table => new
                 {
@@ -274,15 +294,38 @@ namespace ERPMeioAmbiente.API.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Veiculos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Placa = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Modelo = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Marca = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    MotoristaId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Veiculos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Veiculos_Motoristas_MotoristaId",
+                        column: x => x.MotoristaId,
+                        principalTable: "Motoristas",
+                        principalColumn: "Id");
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Coletas",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Nvol = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Peso = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    NumeroVolume = table.Column<int>(type: "int", nullable: false),
+                    PesoTotal = table.Column<double>(type: "double", nullable: false),
                     Dimensoes = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Endereco = table.Column<string>(type: "longtext", nullable: false)
@@ -308,12 +351,7 @@ namespace ERPMeioAmbiente.API.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ColetaId = table.Column<int>(type: "int", nullable: false),
-                    Motorista = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Veiculo = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    TipoVeiculo = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    MotoristaId = table.Column<int>(type: "int", nullable: false),
                     HorarioChegada = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
@@ -323,6 +361,12 @@ namespace ERPMeioAmbiente.API.Migrations
                         name: "FK_Agendamentos_Coletas_ColetaId",
                         column: x => x.ColetaId,
                         principalTable: "Coletas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Agendamentos_Motoristas_MotoristaId",
+                        column: x => x.MotoristaId,
+                        principalTable: "Motoristas",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -359,6 +403,11 @@ namespace ERPMeioAmbiente.API.Migrations
                 table: "Agendamentos",
                 column: "ColetaId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Agendamentos_MotoristaId",
+                table: "Agendamentos",
+                column: "MotoristaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -416,6 +465,12 @@ namespace ERPMeioAmbiente.API.Migrations
                 name: "IX_Funcionarios_UserId",
                 table: "Funcionarios",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Veiculos_MotoristaId",
+                table: "Veiculos",
+                column: "MotoristaId",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -446,6 +501,9 @@ namespace ERPMeioAmbiente.API.Migrations
                 name: "Funcionarios");
 
             migrationBuilder.DropTable(
+                name: "Veiculos");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
@@ -453,6 +511,9 @@ namespace ERPMeioAmbiente.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "Residuos");
+
+            migrationBuilder.DropTable(
+                name: "Motoristas");
 
             migrationBuilder.DropTable(
                 name: "Clientes");

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPMeioAmbiente.API.Migrations
 {
     [DbContext(typeof(ERPMeioAmbienteContext))]
-    [Migration("20240701205726_InitializingDatabase")]
+    [Migration("20240724224436_InitializingDatabase")]
     partial class InitializingDatabase
     {
         /// <inheritdoc />
@@ -47,13 +47,11 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Nvol")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("NumeroVolume")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Peso")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<double>("PesoTotal")
+                        .HasColumnType("double");
 
                     b.HasKey("Id");
 
@@ -76,22 +74,15 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.Property<DateTime>("HorarioChegada")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Motorista")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("TipoVeiculo")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Veiculo")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("MotoristaId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ColetaId")
                         .IsUnique();
+
+                    b.HasIndex("MotoristaId");
 
                     b.ToTable("Agendamentos");
                 });
@@ -184,6 +175,34 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.ToTable("Funcionarios");
                 });
 
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Motorista", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("NumeroCarteiraHabilitacao")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Telefone")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("VeiculoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Motoristas");
+                });
+
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Residuo", b =>
                 {
                     b.Property<int>("Id")
@@ -207,6 +226,37 @@ namespace ERPMeioAmbiente.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Residuos");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Veiculo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Marca")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Modelo")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("MotoristaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Placa")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MotoristaId")
+                        .IsUnique();
+
+                    b.ToTable("Veiculos");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -424,7 +474,15 @@ namespace ERPMeioAmbiente.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ERPMeioAmbienteAPI.Models.Motorista", "Motorista")
+                        .WithMany("Agendamentos")
+                        .HasForeignKey("MotoristaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Coleta");
+
+                    b.Navigation("Motorista");
                 });
 
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
@@ -466,6 +524,15 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Veiculo", b =>
+                {
+                    b.HasOne("ERPMeioAmbienteAPI.Models.Motorista", "Motorista")
+                        .WithOne("Veiculo")
+                        .HasForeignKey("ERPMeioAmbienteAPI.Models.Veiculo", "MotoristaId");
+
+                    b.Navigation("Motorista");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -530,6 +597,14 @@ namespace ERPMeioAmbiente.API.Migrations
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Cliente", b =>
                 {
                     b.Navigation("Coletas");
+                });
+
+            modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Motorista", b =>
+                {
+                    b.Navigation("Agendamentos");
+
+                    b.Navigation("Veiculo")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ERPMeioAmbienteAPI.Models.Residuo", b =>

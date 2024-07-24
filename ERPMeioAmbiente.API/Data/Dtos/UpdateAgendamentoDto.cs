@@ -7,13 +7,11 @@ namespace ERPMeioAmbienteAPI.Data.Dtos
     {
         [Required]
         public int ColetaId { get; set; }
+
         [Required]
-        public string Motorista { get; set; }
-        [Required]
-        public string Veiculo { get; set; }
-        [Required]
-        public string TipoVeiculo { get; set; }
-        [Required]
+        public int MotoristaId { get; set; }
+
+        [Required(ErrorMessage = "O horário de chegada é obrigatório")]
         public DateTime HorarioChegada { get; set; }
     }
 }

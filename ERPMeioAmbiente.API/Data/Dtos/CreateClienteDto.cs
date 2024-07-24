@@ -9,7 +9,7 @@ namespace ERPMeioAmbienteAPI.Data.Dtos
 
         [Required(ErrorMessage = "O telefone é obrigatório")]
         [Phone(ErrorMessage = "O telefone não é válido")]
-        public string Telefone { get; set; }
+        public string Contato { get; set; }
 
         [Required(ErrorMessage = "O CNPJ é obrigatório")]
         [RegularExpression(@"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}", ErrorMessage = "O CNPJ deve estar no formato 00.000.000/0000-00")]
@@ -28,6 +28,6 @@ namespace ERPMeioAmbienteAPI.Data.Dtos
 
         [Required(ErrorMessage = "A senha é obrigatória")]
         [StringLength(100, ErrorMessage = "A senha deve ter no mínimo {2} e no máximo {1} caracteres.", MinimumLength = 6)]
-        public string Senha { get; set; }
+        public string Password { get; set; }
     }
 }
