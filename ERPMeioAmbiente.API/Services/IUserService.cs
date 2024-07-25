@@ -72,6 +72,7 @@ namespace ERPMeioAmbienteAPI.Services
                             CNPJ = model.CNPJ,
                             Endereco = model.Endereco,
                             CEP = model.CEP,
+                            Email = model.Email,
                             UserId = identityUser.Id,
                         };
 

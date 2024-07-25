@@ -10,7 +10,7 @@ namespace ERPMeioAmbiente.Shared
         public string Email { get; set; }
 
         [Required]
-        [StringLength(50, MinimumLength = 5)]
+        [StringLength(100, MinimumLength = 6)]
         public string Password { get; set; }
 
         [Required]
@@ -21,20 +21,20 @@ namespace ERPMeioAmbiente.Shared
         [StringLength(100)]
         public string Nome { get; set; }
 
-        [Required]
-        [StringLength(50)]
+        [Required(ErrorMessage = "O telefone é obrigatório")]
+        [Phone(ErrorMessage = "O telefone não é válido")]
         public string Contato { get; set; }
 
-        [Required]
-        [StringLength(14, MinimumLength = 14)]
+        [Required(ErrorMessage = "O CNPJ é obrigatório")]
+        [RegularExpression(@"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}", ErrorMessage = "O CNPJ deve estar no formato 00.000.000/0000-00")]
         public string CNPJ { get; set; }
 
         [Required]
         [StringLength(200)]
         public string Endereco { get; set; }
 
-        [Required]
-        [StringLength(9, MinimumLength = 8)]
+        [Required(ErrorMessage = "O CEP é obrigatório")]
+        [RegularExpression(@"\d{5}-\d{3}", ErrorMessage = "O CEP deve estar no formato 00000-000")]
         public string CEP { get; set; }
     }
 }

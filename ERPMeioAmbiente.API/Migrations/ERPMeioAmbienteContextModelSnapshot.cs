@@ -104,6 +104,10 @@ namespace ERPMeioAmbiente.API.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Endereco")
                         .IsRequired()
                         .HasColumnType("longtext");

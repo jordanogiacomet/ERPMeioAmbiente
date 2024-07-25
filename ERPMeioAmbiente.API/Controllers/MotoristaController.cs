@@ -52,7 +52,7 @@ namespace ERPMeioAmbiente.API.Controllers
         [SwaggerResponse(200, "Lista de motoristas recuperada com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]
         [SwaggerResponse(500, "Erro interno")]
-        public async Task<IActionResult> RecuperaMotoristas([FromQuery] int skip, int take)
+        public async Task<IActionResult> RecuperaMotoristas([FromQuery] int skip = 0, int take = 50)
         {
             if (User.IsInRole("Cliente")) return Unauthorized();
 

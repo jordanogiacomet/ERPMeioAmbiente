@@ -13,6 +13,7 @@ namespace ERPMeioAmbienteAPI.Models
         public string CNPJ { get; set; }
         public string Endereco { get; set; }
         public string CEP { get; set; }
+        public string Email { get; set;  }
         public string UserId { get; set; }
         public virtual IdentityUser User { get; set; }
         public virtual ICollection<Coleta> Coletas { get; set; }

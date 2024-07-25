@@ -45,10 +45,16 @@ namespace ERPMeioAmbiente.API.Services
         public async Task<List<ReadVeiculoDto>> GetAllVeiculosAsync(int skip, int take)
         {
             var veiculos = await _context.Veiculos
-                .Include(v => v.Motorista) 
+                .Include(v => v.Motorista)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
+
+            if (veiculos == null || !veiculos.Any())
+            {
+                // Log para verificar se há veículos retornados
+                Console.WriteLine("Nenhum veículo encontrado.");
+            }
 
             return _mapper.Map<List<ReadVeiculoDto>>(veiculos);
         }

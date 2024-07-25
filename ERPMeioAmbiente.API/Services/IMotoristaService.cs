@@ -49,6 +49,12 @@ namespace ERPMeioAmbiente.API.Services
                 .Take(take)
                 .ToListAsync();
 
+            if (motoristas == null || !motoristas.Any())
+            {
+                // Log para verificar se há motoristas retornados
+                Console.WriteLine("Nenhum motorista encontrado.");
+            }
+
             return _mapper.Map<List<ReadMotoristaDto>>(motoristas);
         }
 

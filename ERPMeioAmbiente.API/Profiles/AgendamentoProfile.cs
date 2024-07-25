@@ -9,14 +9,12 @@ namespace ERPMeioAmbiente.API.Profiles
     {
         public AgendamentoProfile()
         {
-            
             CreateMap<CreateAgendamentoDto, Agendamento>();
-            CreateMap<Agendamento, ReadAgendamentoDto>()
-                .ForMember(dest => dest.Coleta, opt => opt.MapFrom(src => src.Coleta))
-                .ForMember(dest => dest.Motorista, opt => opt.MapFrom(src => src.Motorista))
-                .ForMember(dest => dest.MotoristaId, opt => opt.MapFrom(src => src.MotoristaId))
-                .ForMember(dest => dest.ColetaId, opt => opt.MapFrom(src => src.ColetaId));
             CreateMap<UpdateAgendamentoDto, Agendamento>();
+
+            CreateMap<Agendamento, ReadAgendamentoDto>()
+                .ForMember(dest => dest.Motorista, opt => opt.MapFrom(src => src.Motorista != null ? new MotoristaBasicInfoDto { Id = src.MotoristaId, Nome = src.Motorista.Nome } : null));
+
             CreateMap<Agendamento, AgendamentoBasicInfoDto>();
         }
     }

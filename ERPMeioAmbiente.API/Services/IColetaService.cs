@@ -4,6 +4,7 @@ using ERPMeioAmbienteAPI.Data;
 using ERPMeioAmbienteAPI.Data.Dtos;
 using ERPMeioAmbienteAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,21 +33,35 @@ namespace ERPMeioAmbienteAPI.Services
 
         public async Task<Coleta> AddColetaAsync(CreateColetaDto coletaDto)
         {
-            // Verificar existência do cliente
-            var clienteExiste = await _context.Clientes.AnyAsync(c => c.Id == coletaDto.ClienteId);
-            if (!clienteExiste) throw new ArgumentException("Cliente não encontrado.");
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Verificar existência do cliente
+                    var cliente = await _context.Clientes.FindAsync(coletaDto.ClienteId);
+                    if (cliente == null)
+                        throw new ArgumentException("Cliente não encontrado.");
 
-            // Verificar existência dos resíduos
-            var residuosExistentes = await _context.Residuos.Where(r => coletaDto.ResiduoIds.Contains(r.Id)).ToListAsync();
-            if (residuosExistentes.Count != coletaDto.ResiduoIds.Count)
-                throw new ArgumentException("Um ou mais resíduos não encontrados.");
+                    // Verificar existência dos resíduos
+                    var residuosExistentes = await _context.Residuos.Where(r => coletaDto.ResiduoIds.Contains(r.Id)).ToListAsync();
+                    if (residuosExistentes.Count != coletaDto.ResiduoIds.Count)
+                        throw new ArgumentException("Um ou mais resíduos não encontrados.");
 
-            var coleta = _mapper.Map<Coleta>(coletaDto);
-            coleta.ColetaResiduos = residuosExistentes.Select(r => new ColetaResiduo { ResiduoId = r.Id }).ToList();
+                    var coleta = _mapper.Map<Coleta>(coletaDto);
+                    coleta.Cliente = cliente;
+                    coleta.ColetaResiduos = residuosExistentes.Select(r => new ColetaResiduo { ResiduoId = r.Id }).ToList();
 
-            _context.Coletas.Add(coleta);
-            await _context.SaveChangesAsync();
-            return coleta;
+                    _context.Coletas.Add(coleta);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return coleta;
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
 
         public async Task<List<ReadColetaDto>> GetAllColetasAsync(int skip, int take)
@@ -65,6 +80,7 @@ namespace ERPMeioAmbienteAPI.Services
         public async Task<ReadColetaDto> GetColetaByIdAsync(int id)
         {
             var coleta = await _context.Coletas
+                .Include(c => c.Cliente)
                 .Include(c => c.ColetaResiduos).ThenInclude(cr => cr.Residuo)
                 .Include(c => c.Agendamento)
                 .FirstOrDefaultAsync(c => c.Id == id);
@@ -76,31 +92,61 @@ namespace ERPMeioAmbienteAPI.Services
 
         public async Task<bool> UpdateColetaAsync(int id, UpdateColetaDto coletaDto)
         {
-            var coleta = await _context.Coletas
-                .Include(c => c.ColetaResiduos)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    var coleta = await _context.Coletas
+                        .Include(c => c.ColetaResiduos)
+                        .FirstOrDefaultAsync(c => c.Id == id);
 
-            if (coleta == null) return false;
+                    if (coleta == null) return false;
 
-            _mapper.Map(coletaDto, coleta);
+                   
+                    _mapper.Map(coletaDto, coleta);
 
-            // Atualizar a relação muitos-para-muitos para resíduos
-            coleta.ColetaResiduos.Clear();
-            var residuos = await _context.Residuos.Where(r => coletaDto.ResiduoIds.Contains(r.Id)).ToListAsync();
-            coleta.ColetaResiduos = residuos.Select(r => new ColetaResiduo { ColetaId = coleta.Id, ResiduoId = r.Id }).ToList();
+                    var cliente = await _context.Clientes.FindAsync(coletaDto.ClienteId);
+                    if (cliente == null)
+                        throw new ArgumentException("Cliente não encontrado.");
+                    coleta.Cliente = cliente;
 
-            await _context.SaveChangesAsync();
-            return true;
+                   
+                    coleta.ColetaResiduos.Clear();
+                    var residuos = await _context.Residuos.Where(r => coletaDto.ResiduoIds.Contains(r.Id)).ToListAsync();
+                    coleta.ColetaResiduos = residuos.Select(r => new ColetaResiduo { ColetaId = coleta.Id, ResiduoId = r.Id }).ToList();
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
 
         public async Task<bool> DeleteColetaAsync(int id)
         {
-            var coleta = await _context.Coletas.FirstOrDefaultAsync(c => c.Id == id);
-            if (coleta == null) return false;
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    var coleta = await _context.Coletas.FirstOrDefaultAsync(c => c.Id == id);
+                    if (coleta == null) return false;
 
-            _context.Coletas.Remove(coleta);
-            await _context.SaveChangesAsync();
-            return true;
+                    _context.Coletas.Remove(coleta);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
     }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPMeioAmbiente.API.Migrations
 {
     [DbContext(typeof(ERPMeioAmbienteContext))]
-    [Migration("20240724224436_InitializingDatabase")]
-    partial class InitializingDatabase
+    [Migration("20240725124221_InitialDatabase")]
+    partial class InitialDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -104,6 +104,10 @@ namespace ERPMeioAmbiente.API.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("Contato")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("longtext");
 

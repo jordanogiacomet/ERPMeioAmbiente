@@ -11,10 +11,10 @@ namespace ERPMeioAmbiente.API.Models
         public int Id { get; set; }
 
         [Required(ErrorMessage = "O número de volumes é obrigatório")]
-        public int NumeroVolume { get; set; } // Nome mais descritivo
+        public int NumeroVolume { get; set; } 
 
         [Required(ErrorMessage = "O peso total é obrigatório")]
-        public double PesoTotal { get; set; } // Nome mais descritivo e tipo ajustado
+        public double PesoTotal { get; set; } 
 
         [Required(ErrorMessage = "As dimensões são obrigatórias")]
         public string Dimensoes { get; set; }

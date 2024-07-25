@@ -69,7 +69,6 @@ namespace ERPMeioAmbienteAPI.Controllers
         }
 
         [HttpGet("me")]
-        [Authorize(Policy = "ClientePolicy")]
         [SwaggerOperation(Summary = "Recupera dados do cliente autenticado", Description = "Recupera os dados do cliente atualmente autenticado")]
         [SwaggerResponse(200, "Dados do cliente recuperados com sucesso")]
         [SwaggerResponse(401, "Não autorizado")]

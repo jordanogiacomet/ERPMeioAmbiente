@@ -68,7 +68,11 @@ builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IMotoristaService, MotoristaService>();
 builder.Services.AddScoped<IVeiculoService,  VeiculoService>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
